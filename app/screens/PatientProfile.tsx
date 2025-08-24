@@ -37,7 +37,7 @@ export default function PatientProfile() {
         return;
       }
 
-      const response = await fetch(`${getServerUrl()}/patient/profile`, {
+      const response = await fetch(`${getServerUrl()}/auth/profile`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -1,11 +1,19 @@
-import { FontAwesome5, Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
 import React from 'react';
-import { Alert, Text, TouchableOpacity } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { View, Alert, TouchableOpacity, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../constants/tailwindStyles';
 import { OTPAuth } from '../../utils/otpauth';
 import { useRouter } from 'expo-router';
+
+// Import screen components
+import PatientDashboard from '../screens/PatientDashboard';
+import PatientProfile from '../screens/PatientProfile';
+import AIChatScreen from '../screens/AIScreen';
+import TrackingScreen from '../screens/Tracking';
+import EmergencyScreen from '../screens/EmergencyScreen';
+
+const Tab = createBottomTabNavigator();
 
 export default function MainTabs() {
   const router = useRouter();
@@ -37,8 +45,10 @@ export default function MainTabs() {
   };
 
   return (
-    <Tabs
+    <Tab.Navigator
+      id={undefined}
       screenOptions={{
+        headerShown: true,
         tabBarActiveTintColor: colors.primary[600] || '#3B82F6',
         tabBarInactiveTintColor: colors.gray[500] || '#6B7280',
         tabBarStyle: {
@@ -53,7 +63,6 @@ export default function MainTabs() {
           fontSize: 12,
           fontWeight: '500',
         },
-        headerShown: true,
         headerStyle: {
           backgroundColor: colors.white || '#FFFFFF',
           borderBottomWidth: 1,
@@ -67,17 +76,22 @@ export default function MainTabs() {
         headerTintColor: colors.gray[900] || '#111827',
       }}
     >
-      <Tabs.Screen 
-        name="../screens/PatientDashboard"
+      <Tab.Screen 
+        name="Dashboard" 
+        component={PatientDashboard}
         options={{
-          title: 'Dashboard',
           headerTitle: 'InstaAid Dashboard',
-          tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons 
-              name={focused ? 'home' : 'home-outline'} 
-              size={size} 
-              color={color} 
-            />
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={{ alignItems: 'center' }}>
+              {focused && (
+                <View style={{ width: 20, height: 3, backgroundColor: colors.primary[600] || '#3B82F6', borderRadius: 2, marginBottom: 5 }} />
+              )}
+              <Ionicons 
+                name={focused ? 'home' : 'home-outline'} 
+                size={size} 
+                color={color} 
+              />
+            </View>
           ),
           headerRight: () => (
             <TouchableOpacity
@@ -93,59 +107,79 @@ export default function MainTabs() {
           ),
         }}
       />
-      <Tabs.Screen 
-        name="../screens/EmergencyScreen"
+      <Tab.Screen 
+        name="Emergency" 
+        component={EmergencyScreen}
         options={{
-          title: 'Emergency',
           headerTitle: 'Book Emergency Ride',
-          tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons 
-              name={focused ? 'medical' : 'medical-outline'} 
-              size={size} 
-              color={color} 
-            />
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={{ alignItems: 'center' }}>
+              {focused && (
+                <View style={{ width: 20, height: 3, backgroundColor: colors.primary[600] || '#3B82F6', borderRadius: 2, marginBottom: 5 }} />
+              )}
+              <Ionicons 
+                name={focused ? 'medical' : 'medical-outline'} 
+                size={size} 
+                color={color} 
+              />
+            </View>
           ),
         }}
       />
-      <Tabs.Screen 
-        name="../screens/AIScreen"
+      <Tab.Screen 
+        name="AI Chat" 
+        component={AIChatScreen}
         options={{
-          title: 'AI Chat',
           headerTitle: 'AI Assistant',
-          tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons 
-              name={focused ? 'chatbubbles' : 'chatbubbles-outline'} 
-              size={size} 
-              color={color} 
-            />
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={{ alignItems: 'center' }}>
+              {focused && (
+                <View style={{ width: 20, height: 3, backgroundColor: colors.primary[600] || '#3B82F6', borderRadius: 2, marginBottom: 5 }} />
+              )}
+              <Ionicons 
+                name={focused ? 'chatbubbles' : 'chatbubbles-outline'} 
+                size={size} 
+                color={color} 
+              />
+            </View>
           ),
         }}
       />
-      <Tabs.Screen 
-        name="../screens/Tracking"
+      <Tab.Screen 
+        name="Tracking" 
+        component={TrackingScreen}
         options={{
-          title: 'Tracking',
           headerTitle: 'Track Emergency',
-          tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons 
-              name={focused ? 'location' : 'location-outline'} 
-              size={size} 
-              color={color} 
-            />
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={{ alignItems: 'center' }}>
+              {focused && (
+                <View style={{ width: 20, height: 3, backgroundColor: colors.primary[600] || '#3B82F6', borderRadius: 2, marginBottom: 5 }} />
+              )}
+              <Ionicons 
+                name={focused ? 'location' : 'location-outline'} 
+                size={size} 
+                color={color} 
+              />
+            </View>
           ),
         }}
       />
-      <Tabs.Screen 
-        name="../screens/PatientProfile"
+      <Tab.Screen 
+        name="Profile" 
+        component={PatientProfile}
         options={{
-          title: 'Profile',
           headerTitle: 'My Profile',
-          tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons 
-              name={focused ? 'person' : 'person-outline'} 
-              size={size} 
-              color={color} 
-            />
+          tabBarIcon: ({ color, size, focused }) => (
+            <View style={{ alignItems: 'center' }}>
+              {focused && (
+                <View style={{ width: 20, height: 3, backgroundColor: colors.primary[600] || '#3B82F6', borderRadius: 2, marginBottom: 5 }} />
+              )}
+              <Ionicons 
+                name={focused ? 'person' : 'person-outline'} 
+                size={size} 
+                color={color} 
+              />
+            </View>
           ),
           headerRight: () => (
             <TouchableOpacity
@@ -163,6 +197,6 @@ export default function MainTabs() {
           ),
         }}
       />
-    </Tabs>
+    </Tab.Navigator>
   );
 }

@@ -102,6 +102,7 @@ export default function PatientProfileSetupScreen() {
   async function handleSubmit() {
     if (!validateForm()) return;
     setLoading(true);
+    
     try {
       const token = await AsyncStorage.getItem('access_token');
       if (!token) {
@@ -109,6 +110,7 @@ export default function PatientProfileSetupScreen() {
         router.replace('/screens/PatientAuth');
         return;
       }
+      
       const profileData = {
         name: formData.name.trim(),
         email: formData.email.trim() || undefined,
@@ -120,7 +122,16 @@ export default function PatientProfileSetupScreen() {
         allergies: formData.allergies.trim() || undefined,
         address: formData.address.trim(),
       };
-      const response = await fetch(`${getServerUrl()}/patient/profile`, {
+
+      console.log('[PROFILE FORM] Submitting profile data:', JSON.stringify(profileData, null, 2));
+      console.log('[PROFILE FORM] Server URL:', getServerUrl());
+      console.log('[PROFILE FORM] Token available:', !!token);
+
+      // Use the correct endpoint that we know works: /auth/profile
+      const url = `${getServerUrl()}/auth/profile`;
+      console.log('[PROFILE FORM] Making request to:', url);
+
+      const response = await fetch(url, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -128,7 +139,21 @@ export default function PatientProfileSetupScreen() {
         },
         body: JSON.stringify(profileData),
       });
-      const data = await response.json();
+
+      console.log('[PROFILE FORM] Response status:', response.status);
+
+      const responseText = await response.text();
+      console.log('[PROFILE FORM] Raw response:', responseText);
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('[PROFILE FORM] Failed to parse response as JSON:', parseError);
+        Alert.alert('Error', `Server returned invalid response: ${responseText.substring(0, 100)}...`);
+        return;
+      }
+
       if (response.ok) {
         // Mark profile as complete in local storage
         await AsyncStorage.setItem('profile_complete', 'true');
@@ -146,10 +171,22 @@ export default function PatientProfileSetupScreen() {
           ]
         );
       } else {
-        Alert.alert('Error', data.message || 'Failed to update profile. Please try again.');
+        console.error('[PROFILE FORM] Profile update failed:', data);
+        Alert.alert('Error', data.message || `Failed to update profile. Server responded with status ${response.status}`);
       }
-    } catch (error) {
-      Alert.alert('Error', 'Network error. Please check your connection and try again.');
+    } catch (error: any) {
+      console.error('[PROFILE FORM] Profile submission error:', error);
+      
+      if (error.message?.includes('Network request failed')) {
+        Alert.alert(
+          'Network Error', 
+          'Cannot connect to server. Please check:\n• Your internet connection\n• Server is running\n• Correct server URL'
+        );
+      } else if (error.message?.includes('timeout')) {
+        Alert.alert('Timeout Error', 'Request timed out. Please try again.');
+      } else {
+        Alert.alert('Error', `Failed to update profile: ${error.message || 'Unknown error'}`);
+      }
     } finally {
       setLoading(false);
     }
