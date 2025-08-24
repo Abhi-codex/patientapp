@@ -76,7 +76,7 @@ export default {
     extra: {
       router: {},
       eas: {
-        "projectId": ""
+        "projectId": "74fea990-3ed0-4653-8d20-53a63ca4bff5"
       },
       EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
       EXPO_PUBLIC_GEMINI_API_KEY: process.env.EXPO_PUBLIC_GEMINI_API_KEY

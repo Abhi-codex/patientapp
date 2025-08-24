@@ -24,7 +24,7 @@ export interface AuthResult {
 export class OTPAuth {
   
   // Send OTP to phone number
-  static async sendOTP(phoneNumber: string, role: 'driver' | 'patient' | 'doctor' = 'driver'): Promise<OTPResult> {
+  static async sendOTP(phoneNumber: string, role: 'driver' | 'patient' | 'doctor' = 'patient'): Promise<OTPResult> {
     try {
       if (DEBUG) console.log('[BACKEND OTP] Sending OTP to:', phoneNumber, 'role:', role);
 

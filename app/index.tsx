@@ -1,11 +1,64 @@
-import React from "react";
-import { View, Text } from "react-native";
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { colors } from '../constants/tailwindStyles';
 
-export default function Page() {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f9fafb' }}>
-      <Text style={{ fontSize: 28, fontWeight: 'bold', marginBottom: 20 }}>Welcome to InstaAid Patient App</Text>
-      <Text style={{ fontSize: 16, color: '#6b7280' }}>This is the entry point for the patient application.</Text>
-    </View>
-  );
+export default function IndexScreen() {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    checkAuthStatus();
+  }, []);
+
+  const checkAuthStatus = async () => {
+    try {
+      const [accessToken, role, profileComplete] = await AsyncStorage.multiGet([
+        'access_token',
+        'role', 
+        'profile_complete'
+      ]);
+
+      const token = accessToken[1];
+      const userRole = role[1];
+      const isProfileComplete = profileComplete[1] === 'true';
+
+      console.log('[INDEX] Auth check:', { 
+        hasToken: !!token, 
+        role: userRole, 
+        profileComplete: isProfileComplete 
+      });
+
+      if (token && userRole === 'patient') {
+        if (isProfileComplete) {
+          router.replace('/navigation/MainTabs');
+        } else {
+          router.replace('/screens/ProfileForm');
+        }
+      } else {
+        router.replace('/screens/PatientAuth');
+      }
+    } catch (error) {
+      console.error('[INDEX] Auth check error:', error);
+      router.replace('/screens/PatientAuth');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <View style={{ 
+        flex: 1, 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        backgroundColor: colors.gray[50] 
+      }}>
+        <ActivityIndicator size="large" color={colors.primary[500]} />
+      </View>
+    );
+  }
+
+  return null;
 }

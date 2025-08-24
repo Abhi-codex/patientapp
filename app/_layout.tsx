@@ -16,9 +16,13 @@ export default function RootLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="screens/PatientAuth" />
         <Stack.Screen name="screens/OtpScreen" />
-        <Stack.Screen name="screens/PatientProfile" />
+        <Stack.Screen name="screens/ProfileForm" />
         <Stack.Screen name="screens/PatientDashboard" />
-        <Stack.Screen name="screens/PatientMap" />
+        <Stack.Screen name="screens/PatientProfile" />
+        <Stack.Screen name="screens/AIScreen" />
+        <Stack.Screen name="screens/EmergencyScreen" />
+        <Stack.Screen name="screens/BookingScreen" />
+        <Stack.Screen name="screens/Tracking" />
         <Stack.Screen name="navigation/MainTabs" />
       </Stack>
     </GestureHandlerRootView>

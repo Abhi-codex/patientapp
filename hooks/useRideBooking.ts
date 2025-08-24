@@ -128,7 +128,7 @@ export function useRideBooking(): RideBookingState {
             text: 'Start Tracking',
             onPress: () => {
               router.push({
-                pathname: "/patient/tracking",
+                pathname: "/screens/Tracking",
                 params: {
                   rideId: data.ride._id,
                   hospitalName: data.ride.drop.address,

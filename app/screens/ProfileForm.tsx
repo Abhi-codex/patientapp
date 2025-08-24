@@ -106,7 +106,7 @@ export default function PatientProfileSetupScreen() {
       const token = await AsyncStorage.getItem('access_token');
       if (!token) {
         Alert.alert('Error', 'Authentication token not found. Please login again.');
-        router.replace('/patient/login');
+        router.replace('/screens/PatientAuth');
         return;
       }
       const profileData = {
@@ -130,7 +130,21 @@ export default function PatientProfileSetupScreen() {
       });
       const data = await response.json();
       if (response.ok) {
-        Alert.alert('Success!', 'Your profile has been updated successfully.');
+        // Mark profile as complete in local storage
+        await AsyncStorage.setItem('profile_complete', 'true');
+        
+        Alert.alert(
+          'Success!', 
+          'Your profile has been updated successfully.',
+          [
+            {
+              text: 'Continue',
+              onPress: () => {
+                router.replace('/navigation/MainTabs');
+              }
+            }
+          ]
+        );
       } else {
         Alert.alert('Error', data.message || 'Failed to update profile. Please try again.');
       }
