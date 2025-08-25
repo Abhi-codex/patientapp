@@ -53,7 +53,7 @@ interface TripSummaryProps {
   priority?: string;
 }
 
-export default function TripSummary({
+function TripSummary({
   status = RideStatus.SEARCHING,
   distance = 0,
   duration = 0,
@@ -69,8 +69,9 @@ export default function TripSummary({
   const estimatedFare = calculateFare(ambulanceType, distance);
 
   // Get emergency details if available
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
+  const getPriorityColor = (priorityVal: string | undefined) => {
+    if (!priorityVal) return colors.gray[500];
+    switch (priorityVal) {
       case 'critical': return colors.emergency[500];
       case 'high': return colors.warning[500];
       case 'medium': return colors.primary[500];
@@ -252,3 +253,5 @@ export default function TripSummary({
     </ScrollView>
   );
 }
+
+export default React.memo(TripSummary);

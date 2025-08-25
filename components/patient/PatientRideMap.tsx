@@ -14,7 +14,7 @@ interface PatientRideMapProps {
   onRegionChange?: (region: any) => void;
 }
 
-export default function PatientRideMap({
+function PatientRideMap({
   userLocation,
   destinationLocation,
   availableDrivers = [],
@@ -135,3 +135,5 @@ export default function PatientRideMap({
     </View>
   );
 }
+
+export default React.memo(PatientRideMap);

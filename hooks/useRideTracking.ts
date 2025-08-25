@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+// Notifications removed: no-op until backend/push are integrated
 import { Ride, RideStatus } from '../types/rider';
 import { getServerUrl } from '../utils/network';
 
@@ -26,8 +27,10 @@ export function useRideTracking(rideId: string): TrackingState {
       return;
     }
 
+    let didSetLoading = false;
     try {
-      setLoading(true);
+      // Only show the global loading state for the initial fetch (avoid UI flashing on poll)
+      if (!ride) { setLoading(true); didSetLoading = true; }
       setError(null);
       
       const token = await AsyncStorage.getItem('access_token');
@@ -48,6 +51,10 @@ export function useRideTracking(rideId: string): TrackingState {
 
       if (!response.ok) {
         const errorText = await response.text();
+        // Handle unauthorized specially so callers can re-auth if needed
+        if (response.status === 401) {
+          setError('Authentication token invalid or expired');
+        }
         throw new Error(`Failed to fetch ride details: ${response.status} ${errorText}`);
       }
 
@@ -58,10 +65,34 @@ export function useRideTracking(rideId: string): TrackingState {
         
         // Validate ride data structure before setting state
         if (currentRide && currentRide._id) {
-          setRide(currentRide);
+            // Only update ride state if important fields changed to avoid full-screen refreshes
+            const hasRideChanged = (a: any | null, b: any | null) => {
+              if (!b) return true; // no existing ride
+              try {
+                if (a.status !== b.status) return true;
+                if (a.createdAt !== b.createdAt) return true;
+                const aRiderId = a.rider?._id;
+                const bRiderId = b.rider?._id;
+                if (aRiderId !== bRiderId) return true;
+                const aDriverLat = a.rider?.location?.latitude ?? a.pickup?.latitude;
+                const aDriverLng = a.rider?.location?.longitude ?? a.pickup?.longitude;
+                const bDriverLat = b.rider?.location?.latitude ?? b.pickup?.latitude;
+                const bDriverLng = b.rider?.location?.longitude ?? b.pickup?.longitude;
+                if (aDriverLat !== bDriverLat || aDriverLng !== bDriverLng) return true;
+                // Compare drop/pickup coordinates
+                if ((a.drop?.latitude !== b.drop?.latitude) || (a.drop?.longitude !== b.drop?.longitude)) return true;
+                return false;
+              } catch (e) {
+                return true;
+              }
+            };
+
+            if (hasRideChanged(currentRide, ride)) setRide(currentRide);
           
           // Safely set ride status with validation
           if (Object.values(RideStatus).includes(currentRide.status)) {
+            // If status changed from SEARCHING to START and a rider is assigned, notify user
+            // If status transitions SEARCHING -> START, UI will handle user-visible changes. Notifications disabled for now.
             setRideStatus(currentRide.status);
           } else {
             console.warn('Invalid ride status received:', currentRide.status);
@@ -75,14 +106,13 @@ export function useRideTracking(rideId: string): TrackingState {
                currentRide.status === RideStatus.ARRIVED)) {
             try {
               // For now, we'll use the pickup location as driver location
-              // In a real implementation, this would be a separate API call to get real-time driver location
-              if (currentRide.pickup && 
-                  typeof currentRide.pickup.latitude === 'number' && 
-                  typeof currentRide.pickup.longitude === 'number') {
-                setDriverLocation({
-                  latitude: currentRide.pickup.latitude,
-                  longitude: currentRide.pickup.longitude,
-                });
+              // Prefer explicit rider.location if backend provides it; fallback to pickup
+              const candidate = currentRide.rider.location ?? currentRide.pickup ?? null;
+              if (candidate && typeof candidate.latitude === 'number' && typeof candidate.longitude === 'number') {
+                const newLoc = { latitude: candidate.latitude, longitude: candidate.longitude };
+                if (!driverLocation || driverLocation.latitude !== newLoc.latitude || driverLocation.longitude !== newLoc.longitude) {
+                  setDriverLocation(newLoc);
+                }
               }
             } catch (locationError) {
               console.warn('Error processing driver location:', locationError);
@@ -103,7 +133,7 @@ export function useRideTracking(rideId: string): TrackingState {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
       console.error('Error fetching ride details:', err);
     } finally {
-      setLoading(false);
+      if (didSetLoading) setLoading(false);
     }
   };
 
@@ -157,6 +187,8 @@ export function useRideTracking(rideId: string): TrackingState {
       console.log('Ride completed, stopping tracking updates');
     }
   }, [rideStatus]);
+
+  // Push registration removed for now.
 
   return {
     ride,

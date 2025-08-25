@@ -121,13 +121,57 @@ export function useRideBooking(): RideBookingState {
       console.log('Response data:', JSON.stringify(data, null, 2));
       
       if (response.ok) {
+        // Persist last ride so dashboard can reopen tracking later
+        try {
+          // Include the backend-friendly emergency.type if we converted it above
+          const emergencyBackendType = emergencyForBackend?.type || emergencyContext?.emergencyType || '';
+          const lastRide = {
+            rideId: data.ride._id,
+            fare: data.ride.fare,
+            otp: data.ride.otp,
+            latitude: data.ride.drop.latitude,
+            longitude: data.ride.drop.longitude,
+            hospitalName: data.ride.drop.address || hospital.name,
+            ambulanceType: ambulanceType,
+            specialties: hospital.specialties ? hospital.specialties.join(', ') : '',
+            // Store both the original selected emergency ID and the backend category
+            emergencyType: emergencyContext?.emergencyType || '',
+            emergencyBackendType: emergencyBackendType,
+            emergencyName: emergencyContext?.emergencyName || '',
+            priority: emergencyContext?.priority || '',
+            status: 'active',
+            timestamp: Date.now(),
+            params: {
+              rideId: data.ride._id,
+              hospitalName: data.ride.drop.address,
+              rideType: ambulanceType,
+              destination: data.ride.drop.address,
+              hospitalAddress: hospital.address || hospital.name,
+              fare: data.ride.fare ? data.ride.fare.toString() : '',
+              otp: data.ride.otp,
+              latitude: data.ride.drop.latitude.toString(),
+              longitude: data.ride.drop.longitude.toString(),
+              emergencyType: emergencyContext?.emergencyType || '',
+              emergencyBackendType: emergencyBackendType,
+              emergencyName: emergencyContext?.emergencyName || '',
+              priority: emergencyContext?.priority || '',
+              specialties: hospital.specialties ? hospital.specialties.join(', ') : '',
+            }
+          };
+
+          await AsyncStorage.setItem('last_ride', JSON.stringify(lastRide));
+        } catch (err) {
+          console.error('Failed to persist last ride:', err);
+        }
+
         Alert.alert(
           'Ambulance Booked Successfully', 
           `${hospital.name}\n\nKeep your phone accessible - the driver will contact you soon.`,
           [{
             text: 'Start Tracking',
             onPress: () => {
-              router.push({
+              // Replace booking route with tracking so back does not return to booking
+              router.replace({
                 pathname: "/screens/Tracking",
                 params: {
                   rideId: data.ride._id,
@@ -147,7 +191,8 @@ export function useRideBooking(): RideBookingState {
               });
             }
           }]
-        )} 
+        )
+      } 
         else {
       console.log('Booking failed with status:', response.status);
       console.log('Response data:', JSON.stringify(data, null, 2));

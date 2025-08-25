@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Image, Pressable, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, styles } from '../../constants/tailwindStyles';
@@ -117,22 +117,29 @@ export default function PatientDashboard() {
       {/* Greeting + Search */}
       <View style={[styles.px5, styles.mt4, styles.mb4]}> 
         <Text style={[styles.text2xl, styles.fontBold, styles.textGray900]}>Hi {profile?.name || 'Patient'}</Text>
-        <View style={[styles.flexRow, styles.alignCenter, styles.bgGray100, styles.roundedXl, styles.px4, styles.py3, styles.mt3, styles.shadowSm]}> 
-          <Ionicons name="search" size={20} color={colors.gray[500]} />
-          <TextInput
-            style={[styles.flex1, styles.textBase, styles.ml2]}
-            placeholder="Search services..."
-            placeholderTextColor={colors.gray[400]}
-            editable={false}
-          />
-        </View>
       </View>
 
       {/* Main Content */}
       <View style={[styles.flex1, styles.px5]}> 
         <TouchableOpacity
           style={[styles.bgEmergency500, styles.rounded2xl, styles.p6, styles.shadow, styles.mb6, styles.alignCenter]}
-          onPress={() => router.push('/screens/EmergencyScreen')}
+          onPress={async () => {
+            try {
+              const last = await AsyncStorage.getItem('last_ride');
+              if (last) {
+                const parsed = JSON.parse(last);
+                if (parsed && parsed.rideId && parsed.status === 'active') {
+                  // Open tracking for last ride
+                  router.push({ pathname: '/screens/Tracking', params: parsed.params || { rideId: parsed.rideId } });
+                  return;
+                }
+              }
+            } catch (e) {
+              console.error('Error reading last ride:', e);
+            }
+
+            router.push('/screens/EmergencyScreen');
+          }}
         >
           <FontAwesome5 name="ambulance" size={44} color={colors.white} />
           <Text style={[styles.text2xl, styles.fontBold, styles.textWhite, styles.mt3]}>Book Ambulance</Text>
@@ -162,7 +169,6 @@ export default function PatientDashboard() {
         >
           <FontAwesome5 name="user-md" size={44} color={colors.white} />
           <Text style={[styles.text2xl, styles.fontBold, styles.textWhite, styles.mt3]}>Free Consultation</Text>
-          <Text style={[styles.textBase, styles.textWhite, styles.textCenter]}>Book an appointment with a doctor instantly for free health advice</Text>
         </TouchableOpacity>
       </View>
     </View>
