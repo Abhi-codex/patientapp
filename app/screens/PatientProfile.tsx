@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
+import { MaterialIcons, FontAwesome5, Entypo } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, styles as s } from '../../constants/tailwindStyles';
 import { getServerUrl } from '../../utils/network';
@@ -206,20 +206,28 @@ export default function PatientProfile() {
         ]}
       >
         {/* Profile Header Card */}
-        <View style={[s.bgWhite, s.rounded3xl, s.p6, s.mb5, s.shadow, s.alignCenter]}>
+        <View style={[s.bgWhite, s.rounded3xl, s.p6, s.mb5, s.shadow, s.alignCenter, { position: 'relative' }]}>
+          <TouchableOpacity
+            onPress={() => setShowEditModal(true)}
+            style={{ position: 'absolute', left: 16, top: 16, zIndex: 10, padding: 6 }}
+            accessibilityLabel="Edit profile"
+          >
+            <Entypo name="edit" size={30} color={colors.black} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={handleSignOut}
+            style={{ position: 'absolute', right: 16, top: 16, zIndex: 10, padding: 6 }}
+            accessibilityLabel="Sign out"
+          >
+            <MaterialIcons name="logout" size={30} color={colors.black} />
+          </TouchableOpacity>
           <View style={[s.w20, s.h20, s.bgPrimary100, s.roundedFull, s.alignCenter, s.justifyCenter, s.mb4]}>
             <FontAwesome5 name="user" size={40} color={colors.primary[600]} />
           </View>
           <Text style={[s.text2xl, s.fontBold, s.textGray800, s.textCenter]}>
             {profileData?.name || 'Patient Name'}
           </Text>
-          <TouchableOpacity 
-            style={[s.flexRow, s.alignCenter, s.bgPrimary600, s.px4, s.py2, s.roundedFull, s.mt3]}
-            onPress={() => setShowEditModal(true)}
-          >
-            <MaterialIcons name="edit" size={18} color="white" />
-            <Text style={[s.textSm, s.fontSemibold, s.textWhite, s.ml1]}>Edit</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Contact Information */}
@@ -307,17 +315,6 @@ export default function PatientProfile() {
           )}
         </View>
 
-        {/* Actions */}
-        <View style={[s.mt6]}>
-          <TouchableOpacity
-            onPress={handleSignOut}
-            style={[s.wFull, s.py4, s.alignCenter, s.roundedLg, { backgroundColor: colors.danger[600] }]}
-          >
-            <Text style={[s.textWhite, s.textLg, s.fontBold]}>
-              Sign Out
-            </Text>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
 
       {/* Edit Modal */}

@@ -1,276 +1,170 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Alert, Linking } from "react-native";
-import { useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, Image, Pressable, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, styles } from '../../constants/tailwindStyles';
+import { getServerUrl } from '../../utils/network';
+
+interface PatientProfile {
+  name?: string;
+  phone?: string;
+  email?: string;
+  age?: string;
+  gender?: string;
+  bloodGroup?: string;
+  emergencyContact?: string;
+  address?: string;
+}
 
 export default function PatientDashboard() {
   const router = useRouter();
-  const [userName, setUserName] = useState<string>('');
   const insets = useSafeAreaInsets();
+  const [profile, setProfile] = useState<PatientProfile | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    getUserName();
+    const fetchProfile = async () => {
+      setLoadingProfile(true);
+      try {
+        const token = await AsyncStorage.getItem('access_token');
+        if (!token) {
+          router.replace('/');
+          return;
+        }
+        const res = await fetch(`${getServerUrl()}/patient/profile`, {
+          method: 'GET',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const user = data.user || data;
+          setProfile({ ...user, phone: user?.phone || (await AsyncStorage.getItem('phone')) || '' });
+        } else {
+          const phone = await AsyncStorage.getItem('phone');
+          setProfile({ phone: phone || '' });
+        }
+      } catch (e) {
+        const phone = await AsyncStorage.getItem('phone');
+        setProfile({ phone: phone || '' });
+      } finally {
+        setLoadingProfile(false);
+      }
+    };
+    fetchProfile();
   }, []);
 
-  const getUserName = async () => {
-    try {
-      // Try to get name from profile data or use 'Patient' as default
-      const storedProfile = await AsyncStorage.getItem('user_profile');
-      if (storedProfile) {
-        const profile = JSON.parse(storedProfile);
-        setUserName(profile.name || 'Patient');
-      } else {
-        setUserName('Patient');
-      }
-    } catch (error) {
-      setUserName('Patient');
-    }
+  useEffect(() => {
+    Animated.timing(dropdownAnim, { toValue: dropdownOpen ? 1 : 0, duration: 180, useNativeDriver: true }).start();
+  }, [dropdownOpen]);
+
+  const handleLogout = async () => {
+    await AsyncStorage.removeItem('access_token');
+    await AsyncStorage.removeItem('refresh_token');
+    router.replace('/');
   };
 
-  const handleEmergencyCall = () => {
-    Alert.alert(
-      'Emergency Call',
-      'Do you want to call emergency services?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Call 112',
-          style: 'destructive',
-          onPress: () => {
-            Linking.openURL('tel:112');
-          },
-        },
-      ]
-    );
-  };
-
-  const handleBookAmbulance = () => {
-    // Navigate to emergency selection screen
-    router.push('/screens/EmergencyScreen');
-  };
-
-  const handleTrackEmergency = () => {
-    router.push('/screens/Tracking');
-  };
-
-  const handleAIAssistant = () => {
-    router.push('/screens/AIScreen');
-  };
-
-  const DashboardCard = ({ 
-    icon, 
-    title, 
-    subtitle, 
-    onPress, 
-    backgroundColor = colors.white,
-    textColor = colors.gray[900],
-    iconColor = colors.gray[600]
-  }: {
-    icon: string;
-    title: string;
-    subtitle: string;
-    onPress: () => void;
-    backgroundColor?: string;
-    textColor?: string;
-    iconColor?: string;
-  }) => (
-    <TouchableOpacity
-      onPress={onPress}
-      style={[
-        styles.p4,
-        styles.roundedLg,
-        styles.mb4,
-        {
-          backgroundColor,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          elevation: 3,
-        }
-      ]}
-    >
-      <View style={[styles.flexRow, styles.alignCenter]}>
-        <View style={[styles.p3, styles.roundedFull, { backgroundColor: colors.gray[100] }]}>
-          <Ionicons name={icon as any} size={24} color={iconColor} />
-        </View>
-        <View style={[styles.ml4, styles.flex1]}>
-          <Text style={[styles.textLg, styles.fontBold, { color: textColor }]}>
-            {title}
-          </Text>
-          <Text style={[styles.textSm, { color: textColor, opacity: 0.7 }]}>
-            {subtitle}
-          </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={20} color={iconColor} />
-      </View>
-    </TouchableOpacity>
-  );
+  const isProfileComplete = !!(profile && profile.name && profile.address && profile.emergencyContact);
 
   return (
-    <ScrollView 
-      style={[styles.flex1, { backgroundColor: colors.gray[50] }]}
-      contentContainerStyle={{ 
-        paddingTop: insets.top,
-        paddingBottom: 85 + Math.max(insets.bottom - 8, 0), // Account for tab bar height
-      }}
-    >
-      <View style={[styles.px4, styles.py6]}>
-        {/* Welcome Header */}
-        <View style={[styles.mb6]}>
-          <Text style={[styles.text2xl, styles.fontBold, styles.textGray900]}>
-            Welcome back, {userName}!
-          </Text>
-          <Text style={[styles.textBase, styles.textGray600, styles.mt1]}>
-            Your emergency assistance is just a tap away
-          </Text>
+    <View style={[styles.flex1, styles.bgGray50]}>
+      {/* Top Profile Bar */}
+      <View style={[styles.flexRow, styles.justifyBetween, styles.alignCenter, styles.px5, styles.pt2, styles.pb3, styles.bgWhite, styles.shadow, { zIndex: 10, paddingTop: insets.top }]}> 
+        <View style={[styles.flexRow, styles.alignCenter]}>
+          <Image source={require('../../assets/images/logo.png')} style={{ width: 40, height: 40, resizeMode: 'contain' }} />
+          <Text style={[styles.text2xl, styles.ml2, styles.fontBold, styles.textEmergency600]}>InstaAid</Text>
         </View>
 
-        {/* Emergency Actions */}
-        <View style={[styles.mb6]}>
-          <Text style={[styles.textLg, styles.fontBold, styles.textGray900, styles.mb4]}>
-            Emergency Actions
-          </Text>
-          
-          {/* Emergency Call Button */}
-          <TouchableOpacity
-            onPress={handleEmergencyCall}
-            style={[
-              styles.wFull,
-              styles.py6,
-              styles.alignCenter,
-              styles.roundedLg,
-              styles.mb4,
-              {
-                backgroundColor: colors.danger[600],
-                shadowColor: colors.danger[600],
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
-                elevation: 8,
-              }
-            ]}
+        <View style={{ position: 'relative' }}>
+          <Pressable
+            style={[styles.flexRow, styles.alignCenter, styles.p2, styles.bgGray100, styles.roundedXl, styles.shadowSm]}
+            onPress={() => setDropdownOpen((v) => !v)}
           >
-            <Ionicons name="call" size={32} color={colors.white} />
-            <Text style={[styles.textWhite, styles.textXl, styles.fontBold, styles.mt2]}>
-              Emergency Call
+            <FontAwesome5 name="user-injured" size={18} color={colors.black} />
+            <Text style={[styles.textSm, styles.fontSemibold, styles.ml2, { minWidth: 80 }]}> 
+              {loadingProfile ? <ActivityIndicator size="small" color={colors.primary[600]} /> : (profile?.phone || '---')}
             </Text>
-            <Text style={[styles.textWhite, styles.textSm, { opacity: 0.9 }]}>
-              Call 112 for immediate help
-            </Text>
-          </TouchableOpacity>
+            <MaterialIcons name={dropdownOpen ? 'keyboard-arrow-up' : 'keyboard-arrow-down'} size={22} color={colors.gray[700]} />
+          </Pressable>
 
-          {/* Book Ambulance */}
-          <DashboardCard
-            icon="car-outline"
-            title="Book Ambulance"
-            subtitle="Request an ambulance to your location"
-            onPress={handleBookAmbulance}
-            backgroundColor={colors.primary[600]}
-            textColor={colors.white}
-            iconColor={colors.white}
-          />
-
-          {/* Quick Emergency Booking */}
-          <TouchableOpacity
-            onPress={handleBookAmbulance}
-            style={[
-              styles.wFull,
-              styles.py4,
-              styles.alignCenter,
-              styles.roundedLg,
-              styles.mb4,
-              {
-                backgroundColor: colors.warning[500],
-                shadowColor: colors.warning[500],
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
-                elevation: 8,
-              }
-            ]}
-          >
-            <Ionicons name="medical" size={32} color={colors.white} />
-            <Text style={[styles.textWhite, styles.textXl, styles.fontBold, styles.mt2]}>
-              Medical Emergency
-            </Text>
-            <Text style={[styles.textWhite, styles.textSm, { opacity: 0.9 }]}>
-              Select emergency type & book ambulance
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Quick Services */}
-        <View style={[styles.mb6]}>
-          <Text style={[styles.textLg, styles.fontBold, styles.textGray900, styles.mb4]}>
-            Quick Services
-          </Text>
-
-          <DashboardCard
-            icon="location-outline"
-            title="Track Emergency"
-            subtitle="Track your emergency request status"
-            onPress={handleTrackEmergency}
-          />
-
-          <DashboardCard
-            icon="chatbubbles-outline"
-            title="AI Health Assistant"
-            subtitle="Get instant health advice and guidance"
-            onPress={handleAIAssistant}
-          />
-
-          <DashboardCard
-            icon="person-outline"
-            title="My Profile"
-            subtitle="View and update your medical information"
-            onPress={() => router.push('/screens/PatientProfile')}
-          />
-        </View>
-
-        {/* Emergency Contacts */}
-        <View style={[styles.bgWhite, styles.roundedLg, styles.p4, { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 }]}>
-          <Text style={[styles.textLg, styles.fontBold, styles.textGray900, styles.mb4]}>
-            Emergency Contacts
-          </Text>
-          
-          <View style={[styles.flexRow, styles.justifyBetween, styles.alignCenter, styles.py2]}>
-            <View>
-              <Text style={[styles.textBase, styles.fontMedium, styles.textGray900]}>Police</Text>
-              <Text style={[styles.textSm, styles.textGray600]}>100</Text>
-            </View>
-            <TouchableOpacity onPress={() => Linking.openURL('tel:100')}>
-              <Ionicons name="call-outline" size={24} color={colors.primary[600]} />
-            </TouchableOpacity>
-          </View>
-
-          <View style={[styles.flexRow, styles.justifyBetween, styles.alignCenter, styles.py2]}>
-            <View>
-              <Text style={[styles.textBase, styles.fontMedium, styles.textGray900]}>Fire Service</Text>
-              <Text style={[styles.textSm, styles.textGray600]}>101</Text>
-            </View>
-            <TouchableOpacity onPress={() => Linking.openURL('tel:101')}>
-              <Ionicons name="call-outline" size={24} color={colors.primary[600]} />
-            </TouchableOpacity>
-          </View>
-
-          <View style={[styles.flexRow, styles.justifyBetween, styles.alignCenter, styles.py2]}>
-            <View>
-              <Text style={[styles.textBase, styles.fontMedium, styles.textGray900]}>Ambulance</Text>
-              <Text style={[styles.textSm, styles.textGray600]}>108</Text>
-            </View>
-            <TouchableOpacity onPress={() => Linking.openURL('tel:108')}>
-              <Ionicons name="call-outline" size={24} color={colors.primary[600]} />
-            </TouchableOpacity>
-          </View>
+          {dropdownOpen && (
+            <Animated.View
+              style={{
+                transform: [{ scale: dropdownAnim.interpolate({ inputRange: [0,1], outputRange: [0.96,1] }) }],
+                position: 'absolute', right: 0, top: 48, backgroundColor: colors.white,
+                borderRadius: 12, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 8, elevation: 8,
+                minWidth: 180, padding: 10
+              }}
+            >
+              {!isProfileComplete && (
+                <TouchableOpacity style={[styles.flexRow, styles.alignCenter, styles.mb3]} onPress={() => { setDropdownOpen(false); router.push('/screens/PatientProfile'); }}>
+                  <FontAwesome5 name="user-edit" size={16} color={colors.primary[600]} />
+                  <Text style={[styles.ml2, styles.textBase, styles.textPrimary600]}>Complete Profile</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={[styles.flexRow, styles.alignCenter]} onPress={handleLogout}>
+                <MaterialIcons name="logout" size={18} color={colors.danger[600]} />
+                <Text style={[styles.ml2, styles.textBase, styles.textDanger600]}>Logout</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          )}
         </View>
       </View>
-    </ScrollView>
+
+      {/* Greeting + Search */}
+      <View style={[styles.px5, styles.mt4, styles.mb4]}> 
+        <Text style={[styles.text2xl, styles.fontBold, styles.textGray900]}>Hi {profile?.name || 'Patient'}</Text>
+        <View style={[styles.flexRow, styles.alignCenter, styles.bgGray100, styles.roundedXl, styles.px4, styles.py3, styles.mt3, styles.shadowSm]}> 
+          <Ionicons name="search" size={20} color={colors.gray[500]} />
+          <TextInput
+            style={[styles.flex1, styles.textBase, styles.ml2]}
+            placeholder="Search services..."
+            placeholderTextColor={colors.gray[400]}
+            editable={false}
+          />
+        </View>
+      </View>
+
+      {/* Main Content */}
+      <View style={[styles.flex1, styles.px5]}> 
+        <TouchableOpacity
+          style={[styles.bgEmergency500, styles.rounded2xl, styles.p6, styles.shadow, styles.mb6, styles.alignCenter]}
+          onPress={() => router.push('/screens/EmergencyScreen')}
+        >
+          <FontAwesome5 name="ambulance" size={44} color={colors.white} />
+          <Text style={[styles.text2xl, styles.fontBold, styles.textWhite, styles.mt3]}>Book Ambulance</Text>
+          <Text style={[styles.textBase, styles.textWhite, styles.textCenter]}>Quickly book a nearby ambulance in emergency</Text>
+        </TouchableOpacity>
+
+        <View style={[styles.flexRow, styles.justifyBetween, styles.gap3]}> 
+          <TouchableOpacity
+            style={[styles.flex1, styles.bgMedical100, styles.roundedXl, styles.alignCenter, styles.px4, styles.py5, styles.shadowSm]}
+            onPress={() => router.push('/screens/MedicineScreen')}
+          >
+            <FontAwesome5 name="pills" size={28} color={colors.medical ? colors.medical[600] : colors.primary[600]} />
+            <Text style={[styles.textLg, styles.fontBold, styles.textMedical600, styles.mt2]}>Medicine</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.flex1, styles.bgPrimary100, styles.roundedXl, styles.alignCenter, styles.px4, styles.py5, styles.shadowSm]}
+            onPress={() => router.push('/screens/AIScreen')}
+          >
+            <Ionicons name="chatbubbles" size={28} color={colors.primary[600]} />
+            <Text style={[styles.textLg, styles.fontBold, styles.textPrimary600, styles.mt2]}>AI Assistant</Text>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.bgPrimary500, styles.rounded2xl, styles.p6, styles.shadow, styles.mt6, styles.alignCenter]}
+          onPress={() => router.push('/screens/AppointmentScreen')}
+        >
+          <FontAwesome5 name="user-md" size={44} color={colors.white} />
+          <Text style={[styles.text2xl, styles.fontBold, styles.textWhite, styles.mt3]}>Free Consultation</Text>
+          <Text style={[styles.textBase, styles.textWhite, styles.textCenter]}>Book an appointment with a doctor instantly for free health advice</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }

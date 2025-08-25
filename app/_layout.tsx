@@ -18,6 +18,8 @@ export default function RootLayout() {
         <Stack.Screen name="screens/OtpScreen" />
         <Stack.Screen name="screens/ProfileForm" />
         <Stack.Screen name="screens/PatientDashboard" />
+        <Stack.Screen name="screens/AppointmentScreen" />
+        <Stack.Screen name="screens/MedicineScreen" />
         <Stack.Screen name="screens/PatientProfile" />
         <Stack.Screen name="screens/AIScreen" />
         <Stack.Screen name="screens/EmergencyScreen" />

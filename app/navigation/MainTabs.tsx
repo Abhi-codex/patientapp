@@ -1,21 +1,21 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { FontAwesome, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../../constants/tailwindStyles';
-import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import PatientDashboard from '../screens/PatientDashboard';
 import PatientProfile from '../screens/PatientProfile';
 import AIChatScreen from '../screens/AIScreen';
-import TrackingScreen from '../screens/Tracking';
 import EmergencyScreen from '../screens/EmergencyScreen';
+import AppointmentsScreen from '../screens/AppointmentScreen';
 
 const Tab = createBottomTabNavigator();
 
 export default function MainTabs() {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
+
+  
 
   return (
     <Tab.Navigator
@@ -29,7 +29,7 @@ export default function MainTabs() {
           borderTopWidth: 1,
           borderTopColor: colors.gray[200] || '#E5E7EB',
           paddingBottom: Math.max(insets.bottom, 8), // Ensure padding above system nav
-          paddingTop: 8,
+          paddingTop: 4,
           height: 65 + Math.max(insets.bottom - 8, 0), // Adjust height for safe area
           position: 'absolute',
           bottom: 0,
@@ -43,50 +43,43 @@ export default function MainTabs() {
       }}
     >
       <Tab.Screen 
-        name="Dashboard" 
+        name="Home" 
         component={PatientDashboard}
         options={{
           tabBarIcon: ({ color, size, focused }) => (
             <View style={{ alignItems: 'center' }}>
-              {focused && (
-                <View style={{ width: 20, height: 3, backgroundColor: colors.primary[600] || '#3B82F6', borderRadius: 2, marginBottom: 5 }} />
-              )}
               <Ionicons 
-                name={focused ? 'home' : 'home-outline'} 
-                size={size} 
-                color={color} 
+              name={focused ? 'home' : 'home-outline'} 
+              size={size} 
+              color={color} 
               />
             </View>
-          ),
-        }}
-      />
-      <Tab.Screen 
-        name="Emergency" 
-        component={EmergencyScreen}
-        options={{
-          tabBarIcon: ({ color, size, focused }) => (
-            <View style={{ alignItems: 'center' }}>
-              {focused && (
-                <View style={{ width: 20, height: 3, backgroundColor: colors.primary[600] || '#3B82F6', borderRadius: 2, marginBottom: 5 }} />
-              )}
-              <Ionicons 
-                name={focused ? 'medical' : 'medical-outline'} 
-                size={size} 
-                color={color} 
-              />
-            </View>
-          ),
-        }}
-      />
+            ),
+          }}
+          />
+          <Tab.Screen 
+          name="Emergency" 
+          component={EmergencyScreen}
+          options={{
+              tabBarActiveTintColor: colors.emergency[500],
+              tabBarInactiveTintColor: colors.gray[500],
+              tabBarIcon: ({ color, focused }) => (
+                <View style={{ alignItems: 'center' }}>
+                  <MaterialCommunityIcons 
+                    name={focused ? 'car-emergency' : 'ambulance'} 
+                    size={28} 
+                    color={color} 
+                  />
+                </View>
+              ),
+            }}
+          />
       <Tab.Screen 
         name="AI Chat" 
         component={AIChatScreen}
         options={{
           tabBarIcon: ({ color, size, focused }) => (
             <View style={{ alignItems: 'center' }}>
-              {focused && (
-                <View style={{ width: 20, height: 3, backgroundColor: colors.primary[600] || '#3B82F6', borderRadius: 2, marginBottom: 5 }} />
-              )}
               <Ionicons 
                 name={focused ? 'chatbubbles' : 'chatbubbles-outline'} 
                 size={size} 
@@ -97,16 +90,13 @@ export default function MainTabs() {
         }}
       />
       <Tab.Screen 
-        name="Tracking" 
-        component={TrackingScreen}
+        name="Appointment" 
+        component={AppointmentsScreen}
         options={{
           tabBarIcon: ({ color, size, focused }) => (
             <View style={{ alignItems: 'center' }}>
-              {focused && (
-                <View style={{ width: 20, height: 3, backgroundColor: colors.primary[600] || '#3B82F6', borderRadius: 2, marginBottom: 5 }} />
-              )}
-              <Ionicons 
-                name={focused ? 'location' : 'location-outline'} 
+              <FontAwesome
+                name={focused ? 'bell' : 'bell-o'} 
                 size={size} 
                 color={color} 
               />
@@ -120,9 +110,6 @@ export default function MainTabs() {
         options={{
           tabBarIcon: ({ color, size, focused }) => (
             <View style={{ alignItems: 'center' }}>
-              {focused && (
-                <View style={{ width: 20, height: 3, backgroundColor: colors.primary[600] || '#3B82F6', borderRadius: 2, marginBottom: 5 }} />
-              )}
               <Ionicons 
                 name={focused ? 'person' : 'person-outline'} 
                 size={size} 
