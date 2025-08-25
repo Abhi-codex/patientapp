@@ -1,11 +1,11 @@
-import DropdownField from '../../components/DropdownField';
-import InputField from '../../components/InputField';
+import LabelInput from '../../components/LabelInput';
+import LabelSelect from '../../components/LabelSelect';
 import { Fontisto } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import { colors, styles } from '../../constants/tailwindStyles';
+import { styles as s, colors } from '../../constants/tailwindStyles';
 import { getServerUrl } from '../../utils/network';
 
 type BloodGroup = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
@@ -23,7 +23,6 @@ interface PatientProfile {
   address: string;
 }
 
-
 export default function PatientProfileSetupScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -39,25 +38,8 @@ export default function PatientProfileSetupScreen() {
     address: '',
   });
 
-  const bloodGroups = [
-    { label: 'Select Blood Group', value: '' },
-    { label: 'A+', value: 'A+' },
-    { label: 'A-', value: 'A-' },
-    { label: 'B+', value: 'B+' },
-    { label: 'B-', value: 'B-' },
-    { label: 'AB+', value: 'AB+' },
-    { label: 'AB-', value: 'AB-' },
-    { label: 'O+', value: 'O+' },
-    { label: 'O-', value: 'O-' },
-  ];
-
-  const genders = [
-    { label: 'Select Gender', value: '' },
-    { label: 'Male', value: 'male' },
-    { label: 'Female', value: 'female' },
-    { label: 'Other', value: 'other' },
-  ];
-
+  const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+  const genders = ['male', 'female', 'other'];
 
   const validateForm = (): boolean => {
     if (!formData.name.trim() || formData.name.trim().length < 2) {
@@ -105,33 +87,61 @@ export default function PatientProfileSetupScreen() {
     
     try {
       const token = await AsyncStorage.getItem('access_token');
+      
       if (!token) {
         Alert.alert('Error', 'Authentication token not found. Please login again.');
         router.replace('/screens/PatientAuth');
         return;
       }
       
+      // Structure emergency contact as expected by the server (with 'relation' field)
+      const emergencyContactData = {
+        phone: formData.emergencyContact.trim(),
+        name: null, // You might want to add a field for emergency contact name
+        relation: null // Backend expects 'relation' not 'relationship'
+      };
+
+      // Structure medical history as expected by the server
+      const medicalHistoryData = formData.medicalConditions.trim() ? [{
+        condition: formData.medicalConditions.trim(),
+        details: "",
+        diagnosedAt: new Date().toISOString(),
+        isChronic: false
+      }] : [];
+
       const profileData = {
         name: formData.name.trim(),
         email: formData.email.trim() || undefined,
         age: parseInt(formData.age),
         gender: formData.gender,
         bloodGroup: formData.bloodGroup,
-        emergencyContact: formData.emergencyContact.trim(),
-        medicalConditions: formData.medicalConditions.trim() || undefined,
-        allergies: formData.allergies.trim() || undefined,
+        emergencyContacts: [emergencyContactData],
+        medicalHistory: medicalHistoryData,
+        allergies: formData.allergies.trim() ? [formData.allergies.trim()] : [],
         address: formData.address.trim(),
+        profileCompleted: true,
       };
 
-      console.log('[PROFILE FORM] Submitting profile data:', JSON.stringify(profileData, null, 2));
-      console.log('[PROFILE FORM] Server URL:', getServerUrl());
-      console.log('[PROFILE FORM] Token available:', !!token);
+      const serverUrl = getServerUrl();
+      
+      if (!serverUrl || serverUrl === 'undefined') {
+        Alert.alert('Error', 'Server configuration error. Please contact support.');
+        return;
+      }
 
-      // Use the correct endpoint that we know works: /auth/profile
-      const url = `${getServerUrl()}/auth/profile`;
-      console.log('[PROFILE FORM] Making request to:', url);
-
-      const response = await fetch(url, {
+      // Test server connectivity first
+      try {
+        console.log('[PROFILE FORM] Testing server connectivity...');
+        const testResponse = await fetch(serverUrl, { method: 'HEAD' });
+        console.log('[PROFILE FORM] Server connectivity test status:', testResponse.status);
+      } catch (connectError) {
+        console.error('[PROFILE FORM] Server connectivity test failed:', connectError);
+      }
+      
+      // Using the patient profile endpoint
+      const requestUrl = `${serverUrl}/patient/profile`;
+      
+      let response = await fetch(requestUrl, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -140,26 +150,10 @@ export default function PatientProfileSetupScreen() {
         body: JSON.stringify(profileData),
       });
 
-      console.log('[PROFILE FORM] Response status:', response.status);
-
-      const responseText = await response.text();
-      console.log('[PROFILE FORM] Raw response:', responseText);
-
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('[PROFILE FORM] Failed to parse response as JSON:', parseError);
-        Alert.alert('Error', `Server returned invalid response: ${responseText.substring(0, 100)}...`);
-        return;
-      }
-
       if (response.ok) {
-        // Mark profile as complete in local storage
         await AsyncStorage.setItem('profile_complete', 'true');
-        
         Alert.alert(
-          'Success!', 
+          'Success!',
           'Your profile has been updated successfully.',
           [
             {
@@ -171,21 +165,23 @@ export default function PatientProfileSetupScreen() {
           ]
         );
       } else {
-        console.error('[PROFILE FORM] Profile update failed:', data);
-        Alert.alert('Error', data.message || `Failed to update profile. Server responded with status ${response.status}`);
+        const data = await response.json();
+        Alert.alert('Error', data.message || 'Failed to update profile. Please try again.');
       }
     } catch (error: any) {
       console.error('[PROFILE FORM] Profile submission error:', error);
+      console.error('[PROFILE FORM] Error name:', error.name);
+      console.error('[PROFILE FORM] Error message:', error.message);
+      console.error('[PROFILE FORM] Error stack:', error.stack);
       
       if (error.message?.includes('Network request failed')) {
-        Alert.alert(
-          'Network Error', 
-          'Cannot connect to server. Please check:\n• Your internet connection\n• Server is running\n• Correct server URL'
-        );
-      } else if (error.message?.includes('timeout')) {
-        Alert.alert('Timeout Error', 'Request timed out. Please try again.');
+        Alert.alert('Error', 'Network error. Please check your connection and try again.');
+      } else if (error.message?.includes('JSON')) {
+        Alert.alert('Error', 'Server returned an unexpected response. Please try again or contact support if the issue persists.');
+      } else if (error.message?.includes('Server returned non-JSON response')) {
+        Alert.alert('Error', 'Server error occurred. Please try again later.');
       } else {
-        Alert.alert('Error', `Failed to update profile: ${error.message || 'Unknown error'}`);
+        Alert.alert('Error', 'An unexpected error occurred. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -193,154 +189,164 @@ export default function PatientProfileSetupScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={[styles.flex1]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView style={[styles.flex1, { backgroundColor: colors.gray[50] }]} contentContainerStyle={styles.flexGrow}
-        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <View style={[styles.px5, styles.mt6, styles.py6]}>
+    <KeyboardAvoidingView style={[s.flex1]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView 
+        style={[s.flex1, { backgroundColor: colors.gray[50] }]} 
+        contentContainerStyle={s.flexGrow}
+        keyboardShouldPersistTaps="handled" 
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={[s.px5, s.mt6, s.py6]}>
           {/* Header */}
-          <View style={[styles.alignCenter, styles.mb6]}>
-            <View style={{ alignItems: 'center', justifyContent: 'center', marginBottom: 16,}}>
-              <Fontisto name="person" size={64} color={colors.black} />
+          <View style={[s.alignCenter, s.mb6]}>
+            <View style={[s.alignCenter, s.justifyCenter, s.mb4]}>
+              <Fontisto name="person" size={64} color={colors.primary[500]} />
             </View>
-            <Text style={[styles.text2xl, styles.fontBold, styles.textGray900, styles.textCenter]}>
+            <Text style={[s.text2xl, s.fontBold, s.textGray900, s.textCenter]}>
               Complete Your Profile
             </Text>
-            <Text style={[styles.textSm, styles.textGray600, styles.textCenter, styles.mt2]}>
+            <Text style={[s.textSm, s.textGray600, s.textCenter, s.mt2]}>
               Help us provide better emergency care by completing your profile
             </Text>
           </View>
 
           {/* Personal Information */}
-          <View style={[styles.mb6]}>
-            <Text style={[styles.textLg, styles.fontBold, styles.textGray900, styles.mb3]}>
+          <View style={s.mb6}>
+            <Text style={[s.textLg, s.fontBold, s.textGray900, s.mb3]}>
               Personal Information
             </Text>
 
             {/* Name */}
-            <InputField
+            <LabelInput
               label="Full Name"
-              required
-              placeholder="Enter your full name"
               value={formData.name}
               onChangeText={(value) => updateFormData('name', value)}
               editable={!loading}
+              required
+              icon="person"
             />
 
             {/* Email */}
-            <InputField
-              label="Email Address (Optional)"
-              placeholder="Enter your email"
+            <LabelInput
+              label="Email Address"
               value={formData.email}
               onChangeText={(value) => updateFormData('email', value)}
               keyboardType="email-address"
               autoCapitalize="none"
               editable={!loading}
+              icon="mail"
+              helperText="Optional"
             />
 
             {/* Age and Gender Row */}
-            <View style={[styles.flexRow, { gap: 12 }, styles.mb4]}>
-              <View style={[styles.flex1]}>
-                <InputField
+            <View style={[s.flexRow, { gap: 12 }, s.mb4]}>
+              <View style={s.flex1}>
+                <LabelInput
                   label="Age"
-                  required
-                  placeholder="Age"
                   value={formData.age}
                   onChangeText={(value) => updateFormData('age', value)}
                   keyboardType="numeric"
                   editable={!loading}
+                  required
+                  icon="calendar"
                   containerStyle={{ marginBottom: 0 }}
-                  labelStyle={{ marginBottom: 8 }}
                 />
               </View>
 
-              <View style={[styles.flex1]}>
-                <DropdownField
+              <View style={s.flex1}>
+                <LabelSelect
                   label="Gender"
-                  required
                   value={formData.gender}
-                  onValueChange={(value) => updateFormData('gender', value)}
+                  onChange={(value) => updateFormData('gender', value as string)}
                   options={genders}
-                  enabled={!loading}
+                  required
+                  icon="person"
+                  containerStyle={{ marginBottom: 0 }}
                 />
               </View>
             </View>
 
             {/* Blood Group */}
-            <DropdownField
+            <LabelSelect
               label="Blood Group"
-              required
               value={formData.bloodGroup}
-              onValueChange={(value) => updateFormData('bloodGroup', value)}
+              onChange={(value) => updateFormData('bloodGroup', value as string)}
               options={bloodGroups}
-              enabled={!loading}
+              required
+              icon="water"
             />
           </View>
 
           {/* Emergency Information */}
-          <View style={[styles.mb6]}>
-            <Text style={[styles.textLg, styles.fontBold, styles.textGray900, styles.mb3]}>
+          <View style={s.mb6}>
+            <Text style={[s.textLg, s.fontBold, s.textGray900, s.mb3]}>
               Emergency Information
             </Text>
 
             {/* Emergency Contact */}
-            <InputField
+            <LabelInput
               label="Emergency Contact Number"
-              required
-              placeholder="Emergency contact number"
               value={formData.emergencyContact}
               onChangeText={(value) => updateFormData('emergencyContact', value)}
               keyboardType="phone-pad"
               editable={!loading}
+              required
+              icon="call"
             />
 
             {/* Medical Conditions */}
-            <InputField
-              label="Medical Conditions (Optional)"
-              placeholder="Any chronic conditions, medications, etc."
+            <LabelInput
+              label="Medical Conditions"
               value={formData.medicalConditions}
               onChangeText={(value) => updateFormData('medicalConditions', value)}
               multiline
               numberOfLines={3}
-              textAlignVertical="top"
               editable={!loading}
-              inputStyle={{ minHeight: 80 }}
+              icon="medical"
+              helperText="Any chronic conditions, medications, etc. (Optional)"
             />
 
             {/* Allergies */}
-            <InputField
-              label="Allergies (Optional)"
-              placeholder="Drug allergies, food allergies, etc."
+            <LabelInput
+              label="Allergies"
               value={formData.allergies}
               onChangeText={(value) => updateFormData('allergies', value)}
               editable={!loading}
+              icon="warning"
+              helperText="Drug allergies, food allergies, etc. (Optional)"
             />
 
             {/* Address */}
-            <InputField
+            <LabelInput
               label="Address"
-              required
-              placeholder="Complete address for emergency services"
               value={formData.address}
               onChangeText={(value) => updateFormData('address', value)}
               multiline
               numberOfLines={3}
-              textAlignVertical="top"
               editable={!loading}
-              inputStyle={{ minHeight: 80 }}
+              required
+              icon="location"
+              helperText="Complete address for emergency services"
             />
           </View>
 
           {/* Submit Button */}
           <TouchableOpacity
-            style={[styles.wFull, styles.py4, styles.alignCenter, styles.roundedLg, styles.mb4,
-              {backgroundColor: loading ? colors.gray[300] : colors.black }]}
+            style={[
+              s.wFull, 
+              s.py4, 
+              s.alignCenter, 
+              s.roundedLg, 
+              s.mb4,
+              { backgroundColor: loading ? colors.gray[300] : colors.primary[500] }
+            ]}
             onPress={handleSubmit}
             disabled={loading}
           >
             {loading ? (
               <ActivityIndicator color={colors.white} size="small" />
             ) : (
-              <Text style={[styles.textWhite, styles.textLg, styles.fontBold]}>
+              <Text style={[s.textWhite, s.textLg, s.fontBold]}>
                 Save Profile
               </Text>
             )}

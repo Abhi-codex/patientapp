@@ -2,6 +2,7 @@ import { FontAwesome, FontAwesome5, Ionicons, MaterialCommunityIcons } from '@ex
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import { FlatList, SafeAreaView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, styles } from '../../constants/tailwindStyles';
 import { EMERGENCY_CATEGORIES, EMERGENCY_TYPES, EmergencyCategory, EmergencyType } from '../../types/emergency';
 
@@ -9,6 +10,7 @@ export default function EmergencySelectionScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const insets = useSafeAreaInsets();
 
   // Filter emergencies based on search query
   const filteredEmergencies = useMemo(() => {
@@ -123,21 +125,9 @@ export default function EmergencySelectionScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.flex1, styles.mt8, styles.bgGray50]}>
+    <SafeAreaView style={[styles.flex1, { paddingTop: insets.top, backgroundColor: colors.gray[50] }]}>
       {/* Header */}
       <View style={[styles.px5, styles.py3]}>
-        <View style={[styles.flexRow, styles.alignCenter, styles.mb2]}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={[styles.mr3]}
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.gray[600]} />
-          </TouchableOpacity>
-          <Text style={[styles.textXl, styles.fontBold, styles.textGray800]}>
-            What's the Emergency?
-          </Text>
-        </View>
-
         {/* Search Bar */}
         <View style={[styles.flexRow, styles.alignCenter, styles.bgGray100, styles.shadowSm, styles.roundedXl, styles.px3, styles.py2]}>
           <Ionicons name="search" size={20} color={colors.gray[400]} />
@@ -201,7 +191,7 @@ export default function EmergencySelectionScreen() {
           keyExtractor={(item) => item.id}
           numColumns={3}
           columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: 20 }}
-          contentContainerStyle={{ paddingBottom: 32 }}
+          contentContainerStyle={{ paddingBottom: 85 + Math.max(insets.bottom - 8, 0) }} // Account for tab bar
           showsVerticalScrollIndicator={false}
         />
       )}

@@ -2,10 +2,12 @@ import React, { useState, useEffect } from "react";
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons } from '@expo/vector-icons';
-import { colors, styles } from '../../constants/tailwindStyles';
+import { MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors, styles as s } from '../../constants/tailwindStyles';
 import { getServerUrl } from '../../utils/network';
 import { OTPAuth } from '../../utils/otpauth';
+import PatientEditModal, { PatientFormData } from '../../components/PatientEditModal';
 
 interface PatientData {
   name?: string;
@@ -14,9 +16,18 @@ interface PatientData {
   age?: number;
   gender?: string;
   bloodGroup?: string;
-  emergencyContact?: string;
-  medicalConditions?: string;
-  allergies?: string;
+  emergencyContacts?: Array<{
+    name?: string;
+    phone?: string;
+    relation?: string;
+  }>;
+  medicalHistory?: Array<{
+    condition?: string;
+    details?: string;
+    diagnosedAt?: string;
+    isChronic?: boolean;
+  }>;
+  allergies?: string[];
   address?: string;
 }
 
@@ -24,6 +35,20 @@ export default function PatientProfile() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState<PatientData>({});
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const insets = useSafeAreaInsets();
+  const [editForm, setEditForm] = useState<PatientFormData>({
+    name: '',
+    email: '',
+    age: '',
+    gender: '',
+    bloodGroup: '',
+    emergencyContact: '',
+    medicalConditions: '',
+    allergies: '',
+    address: '',
+  });
 
   useEffect(() => {
     fetchProfileData();
@@ -37,7 +62,7 @@ export default function PatientProfile() {
         return;
       }
 
-      const response = await fetch(`${getServerUrl()}/auth/profile`, {
+      const response = await fetch(`${getServerUrl()}/patient/profile`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -47,19 +72,93 @@ export default function PatientProfile() {
 
       if (response.ok) {
         const data = await response.json();
-        setProfileData(data.profile || {});
+        const userData = data.user || data;
+        setProfileData(userData);
+        
+        // Populate edit form with current data (only editable fields)
+        setEditForm({
+          name: userData.name || '',
+          email: userData.email || '',
+          age: userData.age?.toString() || '',
+          gender: userData.gender || '',
+          bloodGroup: userData.bloodGroup || '',
+          emergencyContact: userData.emergencyContacts?.[0]?.phone || '',
+          medicalConditions: userData.medicalHistory?.[0]?.condition || '',
+          allergies: userData.allergies?.join(', ') || '',
+          address: userData.address || '',
+        });
       } else {
-        console.error('Failed to fetch profile data');
+        Alert.alert('Error', 'Failed to load profile');
+        router.back();
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Failed to fetch profile:', error);
+      Alert.alert('Error', 'Network error occurred');
+      router.back();
     } finally {
       setLoading(false);
     }
   };
 
-  const handleEditProfile = () => {
-    router.push('/screens/ProfileForm');
+  const handleUpdateField = (key: string, value: any) => {
+    setEditForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    try {
+      const token = await AsyncStorage.getItem('access_token');
+      if (!token) {
+        Alert.alert('Error', 'Authentication token not found');
+        return;
+      }
+
+      // Structure data for backend (only send editable fields)
+      const emergencyContactData = {
+        phone: editForm.emergencyContact.trim(),
+        name: null,
+        relation: null
+      };
+
+      const medicalHistoryData = editForm.medicalConditions.trim() ? [{
+        condition: editForm.medicalConditions.trim(),
+        details: "",
+        diagnosedAt: new Date().toISOString(),
+        isChronic: false
+      }] : [];
+
+      const profilePayload = {
+        name: editForm.name.trim(),
+        emergencyContacts: [emergencyContactData],
+        medicalHistory: medicalHistoryData,
+        allergies: editForm.allergies.trim() ? [editForm.allergies.trim()] : [],
+        address: editForm.address.trim(),
+        profileCompleted: true,
+      };
+
+      const response = await fetch(`${getServerUrl()}/patient/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(profilePayload),
+      });
+
+      if (response.ok) {
+        Alert.alert('Success', 'Profile updated successfully');
+        setShowEditModal(false);
+        fetchProfileData(); // Refresh data
+      } else {
+        const data = await response.json();
+        Alert.alert('Error', data.message || 'Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      Alert.alert('Error', 'Failed to update profile');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSignOut = async () => {
@@ -67,10 +166,7 @@ export default function PatientProfile() {
       'Sign Out',
       'Are you sure you want to sign out?',
       [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
+        { text: 'Cancel', style: 'cancel' },
         {
           text: 'Sign Out',
           style: 'destructive',
@@ -80,103 +176,159 @@ export default function PatientProfile() {
               router.replace('/screens/PatientAuth');
             } catch (error) {
               console.error('Sign out error:', error);
-              Alert.alert('Error', 'Failed to sign out. Please try again.');
+              Alert.alert('Error', 'Failed to sign out');
             }
-          },
-        },
+          }
+        }
       ]
     );
   };
 
   if (loading) {
     return (
-      <View style={[styles.flex1, styles.justifyCenter, styles.alignCenter, { backgroundColor: colors.gray[50] }]}>
-        <ActivityIndicator size="large" color={colors.primary[500]} />
-        <Text style={[styles.mt4, styles.textBase, styles.textGray600]}>Loading profile...</Text>
+      <View style={[s.flex1, s.justifyCenter, s.alignCenter, s.bgGray50]}>
+        <ActivityIndicator size="large" color="#7c3aed" />
+        <Text style={[s.textBase, s.mt2, s.textGray600]}>Loading profile...</Text>
       </View>
     );
   }
 
-  const ProfileItem = ({ icon, label, value }: { icon: string, label: string, value?: string | number }) => (
-    <View style={[styles.flexRow, styles.alignCenter, styles.py3, styles.borderB, { borderBottomColor: colors.gray[200] }]}>
-      <Ionicons name={icon as any} size={20} color={colors.gray[600]} style={[styles.mr3]} />
-      <View style={[styles.flex1]}>
-        <Text style={[styles.textSm, styles.textGray500]}>{label}</Text>
-        <Text style={[styles.textBase, styles.textGray900, styles.fontMedium]}>
-          {value || 'Not provided'}
-        </Text>
-      </View>
-    </View>
-  );
-
   return (
-    <ScrollView style={[styles.flex1, { backgroundColor: colors.gray[50] }]}>
-      <View style={[styles.px4, styles.py6]}>
-        {/* Header with edit button */}
-        <View style={[styles.flexRow, styles.justifyBetween, styles.alignCenter, styles.mb6]}>
-          <View>
-            <Text style={[styles.text2xl, styles.fontBold, styles.textGray900]}>
-              {profileData.name || 'Patient Profile'}
-            </Text>
-            <Text style={[styles.textBase, styles.textGray600]}>
-              Manage your personal information
-            </Text>
+    <View style={[s.flex1, s.bgGray50]}>
+      <ScrollView 
+        style={[s.flex1]} 
+        contentContainerStyle={[
+          s.p5, 
+          { 
+            paddingTop: insets.top + 20,
+            paddingBottom: 85 + Math.max(insets.bottom - 8, 0), // Account for tab bar height
+          }
+        ]}
+      >
+        {/* Profile Header Card */}
+        <View style={[s.bgWhite, s.rounded3xl, s.p6, s.mb5, s.shadow, s.alignCenter]}>
+          <View style={[s.w20, s.h20, s.bgPrimary100, s.roundedFull, s.alignCenter, s.justifyCenter, s.mb4]}>
+            <FontAwesome5 name="user" size={40} color={colors.primary[600]} />
           </View>
-          <TouchableOpacity
-            onPress={handleEditProfile}
-            style={[styles.p3, styles.roundedFull, { backgroundColor: colors.primary[100] }]}
+          <Text style={[s.text2xl, s.fontBold, s.textGray800, s.textCenter]}>
+            {profileData?.name || 'Patient Name'}
+          </Text>
+          <TouchableOpacity 
+            style={[s.flexRow, s.alignCenter, s.bgPrimary600, s.px4, s.py2, s.roundedFull, s.mt3]}
+            onPress={() => setShowEditModal(true)}
           >
-            <Ionicons name="pencil" size={20} color={colors.primary[600]} />
+            <MaterialIcons name="edit" size={18} color="white" />
+            <Text style={[s.textSm, s.fontSemibold, s.textWhite, s.ml1]}>Edit</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Profile Information Card */}
-        <View style={[styles.bgWhite, styles.roundedLg, styles.p4, styles.mb4, { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 }]}>
-          <Text style={[styles.textLg, styles.fontBold, styles.textGray900, styles.mb4]}>
-            Personal Information
-          </Text>
+        {/* Contact Information */}
+        <View style={[s.bgWhite, s.rounded2xl, s.p5, s.mb4, s.shadow]}>
+          <Text style={[s.textLg, s.fontBold, s.textGray800, s.mb4]}>Contact Information</Text>
           
-          <ProfileItem icon="person-outline" label="Full Name" value={profileData.name} />
-          <ProfileItem icon="call-outline" label="Phone Number" value={profileData.phone} />
-          <ProfileItem icon="mail-outline" label="Email" value={profileData.email} />
-          <ProfileItem icon="calendar-outline" label="Age" value={profileData.age} />
-          <ProfileItem icon="person-outline" label="Gender" value={profileData.gender} />
-          <ProfileItem icon="water-outline" label="Blood Group" value={profileData.bloodGroup} />
+          {profileData?.email && (
+            <View style={[s.flexRow, s.alignCenter, s.mb3]}>
+              <MaterialIcons name="email" size={20} color={colors.gray[600]} />
+              <Text style={[s.textBase, s.textGray700, s.ml3]}>{profileData.email}</Text>
+            </View>
+          )}
+          
+          {profileData?.phone && (
+            <View style={[s.flexRow, s.alignCenter, s.mb3]}>
+              <MaterialIcons name="phone" size={20} color={colors.gray[600]} />
+              <Text style={[s.textBase, s.textGray700, s.ml3]}>{profileData.phone}</Text>
+            </View>
+          )}
+          
+          {profileData?.emergencyContacts?.[0]?.phone && (
+            <View style={[s.flexRow, s.alignCenter, s.mb3]}>
+              <MaterialIcons name="emergency" size={20} color={colors.gray[600]} />
+              <Text style={[s.textBase, s.textGray700, s.ml3]}>{profileData.emergencyContacts[0].phone}</Text>
+            </View>
+          )}
+          
+          {profileData?.address && (
+            <View style={[s.flexRow, s.alignCenter]}>
+              <MaterialIcons name="location-on" size={20} color={colors.gray[600]} />
+              <Text style={[s.textBase, s.textGray700, s.ml3, s.flex1]}>{profileData.address}</Text>
+            </View>
+          )}
         </View>
 
-        {/* Emergency Information Card */}
-        <View style={[styles.bgWhite, styles.roundedLg, styles.p4, styles.mb4, { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 }]}>
-          <Text style={[styles.textLg, styles.fontBold, styles.textGray900, styles.mb4]}>
-            Emergency Information
-          </Text>
+        {/* Medical Information */}
+        <View style={[s.bgWhite, s.rounded2xl, s.p5, s.mb4, s.shadow]}>
+          <Text style={[s.textLg, s.fontBold, s.textGray800, s.mb4]}>Medical Information</Text>
           
-          <ProfileItem icon="call-outline" label="Emergency Contact" value={profileData.emergencyContact} />
-          <ProfileItem icon="location-outline" label="Address" value={profileData.address} />
-          <ProfileItem icon="medical-outline" label="Medical Conditions" value={profileData.medicalConditions} />
-          <ProfileItem icon="warning-outline" label="Allergies" value={profileData.allergies} />
+          {profileData?.age && (
+            <View style={[s.mb4]}>
+              <Text style={[s.textSm, s.fontSemibold, s.textGray600, s.mb1]}>Age</Text>
+              <Text style={[s.textBase, s.textGray800]}>{profileData.age} years</Text>
+            </View>
+          )}
+          
+          {profileData?.gender && (
+            <View style={[s.mb4]}>
+              <Text style={[s.textSm, s.fontSemibold, s.textGray600, s.mb1]}>Gender</Text>
+              <Text style={[s.textBase, s.textGray800, { textTransform: 'capitalize' }]}>{profileData.gender}</Text>
+            </View>
+          )}
+          
+          {profileData?.bloodGroup && (
+            <View style={[s.mb4]}>
+              <Text style={[s.textSm, s.fontSemibold, s.textGray600, s.mb1]}>Blood Group</Text>
+              <View style={[{ backgroundColor: colors.danger[100] }, s.px3, s.py1, s.roundedFull, s.selfStart]}>
+                <Text style={[s.textSm, { color: colors.danger[700] }, s.fontSemibold]}>{profileData.bloodGroup}</Text>
+              </View>
+            </View>
+          )}
+          
+          {profileData?.medicalHistory && profileData.medicalHistory.length > 0 && (
+            <View style={[s.mb4]}>
+              <Text style={[s.textSm, s.fontSemibold, s.textGray600, s.mb2]}>Medical Conditions</Text>
+              {profileData.medicalHistory.map((condition, index) => (
+                <View key={index} style={[{ backgroundColor: colors.primary[100] }, s.px3, s.py1, s.roundedFull, s.mr2, s.mb2, s.selfStart]}>
+                  <Text style={[s.textSm, { color: colors.primary[700] }]}>{condition.condition}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+          
+          {profileData?.allergies && profileData.allergies.length > 0 && (
+            <View>
+              <Text style={[s.textSm, s.fontSemibold, s.textGray600, s.mb2]}>Allergies</Text>
+              <View style={[s.flexRow, s.flexWrap]}>
+                {profileData.allergies.map((allergy, index) => (
+                  <View key={index} style={[{ backgroundColor: colors.warning[100] }, s.px3, s.py1, s.roundedFull, s.mr2, s.mb2]}>
+                    <Text style={[s.textSm, { color: colors.warning[700] }]}>{allergy}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Actions */}
-        <View style={[styles.mt6]}>
-          <TouchableOpacity
-            onPress={handleEditProfile}
-            style={[styles.wFull, styles.py4, styles.alignCenter, styles.roundedLg, styles.mb3, { backgroundColor: colors.primary[600] }]}
-          >
-            <Text style={[styles.textWhite, styles.textLg, styles.fontBold]}>
-              Edit Profile
-            </Text>
-          </TouchableOpacity>
-
+        <View style={[s.mt6]}>
           <TouchableOpacity
             onPress={handleSignOut}
-            style={[styles.wFull, styles.py4, styles.alignCenter, styles.roundedLg, { backgroundColor: colors.danger[600] }]}
+            style={[s.wFull, s.py4, s.alignCenter, s.roundedLg, { backgroundColor: colors.danger[600] }]}
           >
-            <Text style={[styles.textWhite, styles.textLg, styles.fontBold]}>
+            <Text style={[s.textWhite, s.textLg, s.fontBold]}>
               Sign Out
             </Text>
           </TouchableOpacity>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+
+      {/* Edit Modal */}
+      <PatientEditModal
+        visible={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        editForm={editForm}
+        onUpdateField={handleUpdateField}
+        onSave={handleSaveProfile}
+        saving={saving}
+      />
+    </View>
   );
 }

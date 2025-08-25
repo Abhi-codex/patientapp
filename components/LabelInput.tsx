@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, TextInput, Animated, Text } from 'react-native';
-import { styles as s } from '../constants/tailwindStyles';
+import { Ionicons } from '@expo/vector-icons';
 import { LabelInputProps } from '../types';
+import { styles as s, colors } from '../constants/tailwindStyles';
 
 export default function LabelInput({
   label,
@@ -9,25 +10,27 @@ export default function LabelInput({
   onChangeText,
   helperText,
   containerStyle,
+  required = false,
+  icon,
   ...props
-}: LabelInputProps) {
+}: LabelInputProps & { required?: boolean; icon?: keyof typeof Ionicons.glyphMap }) {
   const [isFocused, setIsFocused] = useState(false);
   const animatedIsFocused = useRef(new Animated.Value(value ? 1 : 0)).current;
 
   useEffect(() => {
     Animated.timing(animatedIsFocused, {
       toValue: isFocused || value ? 1 : 0,
-      duration: 180,
+      duration: 200,
       useNativeDriver: false,
     }).start();
   }, [isFocused, value]);
 
   const labelStyle = {
     position: 'absolute' as 'absolute',
-    left: 12,
+    left: icon ? 44 : 16,
     top: animatedIsFocused.interpolate({
       inputRange: [0, 1],
-      outputRange: [18, -8],
+      outputRange: [20, -8],
     }),
     fontSize: animatedIsFocused.interpolate({
       inputRange: [0, 1],
@@ -35,28 +38,71 @@ export default function LabelInput({
     }),
     color: animatedIsFocused.interpolate({
       inputRange: [0, 1],
-      outputRange: ['#888', '#e46a62ff'], // gray to purple
+      outputRange: [colors.gray[400], colors.primary[600]],
     }),
-    backgroundColor: '#fff',
-    paddingHorizontal: 2,
+    backgroundColor: animatedIsFocused.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['transparent', '#FFFFFF'],
+    }),
+    paddingHorizontal: animatedIsFocused.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0, 4],
+    }),
     zIndex: 2,
+    fontWeight: '500' as '500',
+    borderRadius: 4,
   };
 
+  const borderColor = isFocused 
+    ? colors.primary[500] 
+    : value 
+    ? colors.medical[500] 
+    : colors.gray[300];
+
   return (
-    <View style={[{ marginTop: 15 }, containerStyle]}>
-      <View style={{ position: 'relative' }}>
-        <Animated.Text style={labelStyle}>{label}</Animated.Text>
+    <View style={[s.mb5, containerStyle]}>
+      <View style={s.relative}>
+        <Animated.Text style={labelStyle}>
+          {label}{required && <Text style={{ color: colors.danger[500] }}> *</Text>}
+        </Animated.Text>
+        
+        {icon && (
+          <View style={[
+            s.absolute,
+            s.left4,
+            { top: 20, zIndex: 1 }
+          ]}>
+            <Ionicons 
+              name={icon} 
+              size={20} 
+              color={isFocused ? colors.primary[500] : colors.gray[400]} 
+            />
+          </View>
+        )}
+        
         <TextInput
           {...props}
           value={value}
           onChangeText={onChangeText}
           style={[
-            s.textBase,
-            s.p4,
-            s.pt4,
-            s.border,
+            s.h14,
+            s.border2,
             s.roundedXl,
-            { borderColor: isFocused ? '#e46a62ff' : '#888', color: '#222', backgroundColor: '#fff', fontSize: 16 },
+            s.textBase,
+            s.textGray900,
+            s.bgWhite,
+            s.shadowSm,
+            { 
+              borderColor,
+              paddingHorizontal: icon ? 44 : 16,
+              paddingTop: 8,
+            },
+            props.multiline && { 
+              height: 'auto',
+              minHeight: 80,
+              paddingTop: 16,
+              textAlignVertical: 'top'
+            },
             props.style,
           ]}
           onFocus={e => {
@@ -67,10 +113,14 @@ export default function LabelInput({
             setIsFocused(false);
             props.onBlur && props.onBlur(e);
           }}
+          placeholderTextColor={colors.gray[400]}
         />
       </View>
+      
       {!!helperText && (
-        <Text style={[s.textSm, s.mt0, { color: '#fff' }]}>{helperText}</Text>
+        <Text style={[s.textXs, s.textGray600, s.mt1, s.ml4]}>
+          {helperText}
+        </Text>
       )}
     </View>
   );

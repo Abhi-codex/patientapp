@@ -3,11 +3,13 @@ import { View, Text, TouchableOpacity, ScrollView, Alert, Linking } from "react-
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, styles } from '../../constants/tailwindStyles';
 
 export default function PatientDashboard() {
   const router = useRouter();
   const [userName, setUserName] = useState<string>('');
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     getUserName();
@@ -112,7 +114,13 @@ export default function PatientDashboard() {
   );
 
   return (
-    <ScrollView style={[styles.flex1, { backgroundColor: colors.gray[50] }]}>
+    <ScrollView 
+      style={[styles.flex1, { backgroundColor: colors.gray[50] }]}
+      contentContainerStyle={{ 
+        paddingTop: insets.top,
+        paddingBottom: 85 + Math.max(insets.bottom - 8, 0), // Account for tab bar height
+      }}
+    >
       <View style={[styles.px4, styles.py6]}>
         {/* Welcome Header */}
         <View style={[styles.mb6]}>

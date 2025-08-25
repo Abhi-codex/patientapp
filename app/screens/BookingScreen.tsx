@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Dimensions, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AmbulanceTypeSelector, BookRideButton, HospitalList, PatientMap, SelectedHospital } from '../../components/patient';
 import { colors, styles } from '../../constants/tailwindStyles';
 import { useHospitalSelection, useLocationAndHospitals, useRideBooking } from '../../hooks';
@@ -31,6 +32,7 @@ const renderIcon = (iconObj: { name: string; library: string }, size = 28, color
 export default function RideScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const insets = useSafeAreaInsets();
   useEffect(() => {
     const checkProfile = async () => {
       const token = await AsyncStorage.getItem('access_token');
@@ -217,7 +219,7 @@ export default function RideScreen() {
   }
 
   return (
-    <View style={[styles.flex1, styles.mt8]}>
+    <View style={[styles.flex1, { paddingTop: insets.top }]}>
       {/* Emergency Header */}
       {emergency && (
         <View style={[ styles.px3, styles.py2, styles.bgGray100, styles.shadowSm, styles.borderB,
@@ -286,7 +288,10 @@ export default function RideScreen() {
           <ScrollView 
             style={[styles.flex1]} 
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={[styles.pb4]}
+            contentContainerStyle={[
+              styles.pb4,
+              { paddingBottom: 85 + Math.max(insets.bottom - 8, 0) } // Account for tab bar
+            ]}
           >
             <SelectedHospital
               hospital={selectedHospital}

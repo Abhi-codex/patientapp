@@ -3,6 +3,7 @@ import * as Location from 'expo-location';
 import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PatientRideMap, TripSummary } from '../../components/patient';
 import { colors, styles } from '../../constants/tailwindStyles';
 import { useRideTracking } from '../../hooks';
@@ -34,6 +35,7 @@ const decodePolyline = (t: string) => {
 export default function TrackingScreen() {
   const params = useLocalSearchParams();
   const rideId = getFirstParam(params.rideId);
+  const insets = useSafeAreaInsets();
   
   // Get user's current location
   const [userLocation, setUserLocation] = useState<{
@@ -372,14 +374,13 @@ export default function TrackingScreen() {
   }
 
   return (
-    <View style={[styles.flex1]}>
+    <View style={[styles.flex1, { paddingTop: insets.top }]}>
       {/* Status Header */}
       <View style={[
         styles.bgEmergency500, 
         styles.py3, 
         styles.px4, 
         styles.shadowSm,
-        styles.mt8,
         { backgroundColor: rideStatus === RideStatus.SEARCHING ? colors.warning[400] : 
                            rideStatus === RideStatus.COMPLETED ? colors.medical[500] : 
                            colors.emergency[500] }

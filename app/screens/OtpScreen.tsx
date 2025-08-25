@@ -179,6 +179,8 @@ const OtpScreen: React.FC = () => {
         await AsyncStorage.setItem('access_token', result.tokens.accessToken);
         await AsyncStorage.setItem('refresh_token', result.tokens.refreshToken);
         await AsyncStorage.setItem('role', result.user.role);
+        await AsyncStorage.setItem('user_phone', phone); // Store phone number for profile form
+        console.log('[OTP SCREEN] Stored phone number in AsyncStorage:', phone);
 
         // Check if profile is complete
         const profileComplete = result.user.profileCompleted || false;
@@ -193,7 +195,10 @@ const OtpScreen: React.FC = () => {
         if (profileComplete) {
           router.replace('/navigation/MainTabs');
         } else {
-          router.replace('/screens/ProfileForm');
+          router.replace({
+            pathname: '/screens/ProfileForm',
+            params: { phone: phone }
+          });
         }
       } else {
         setError(result.message || 'Invalid OTP. Please try again.');

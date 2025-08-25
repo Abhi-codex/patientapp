@@ -1,6 +1,7 @@
 import { fetchGeminiResponse } from '../../utils/gemini';
 import React, { useState } from 'react';
 import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, styles } from '../../constants/tailwindStyles';
 
 interface Message {
@@ -19,6 +20,7 @@ export default function AIChatScreen() {
   ]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
+  const insets = useSafeAreaInsets();
 
   // For Gemini API: maintain a history of user/ai messages for context
   const [history, setHistory] = useState<{role: string, parts: {text: string}[]}[]>([
@@ -80,7 +82,7 @@ export default function AIChatScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.flex1, styles.pt8, styles.bgGray100]}
+      style={[styles.flex1, { paddingTop: insets.top, backgroundColor: colors.gray[100] }]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
       >
@@ -88,7 +90,12 @@ export default function AIChatScreen() {
         data={messages}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        contentContainerStyle={[styles.p4, styles.flexGrow,styles.justifyEnd]}
+        contentContainerStyle={[
+          styles.p4, 
+          styles.flexGrow,
+          styles.justifyEnd,
+          { paddingBottom: 85 + Math.max(insets.bottom - 8, 0) } // Account for tab bar
+        ]}
         inverted
         keyboardShouldPersistTaps="handled"
       />

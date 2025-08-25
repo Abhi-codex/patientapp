@@ -159,6 +159,8 @@ export const styles = StyleSheet.create({
   left0: { left: 0 },
   left1: { left: 4 },
   left2: { left: 8 },
+  left3: { left: 12 },
+  left4: { left: 16 },
   left5: { left: 20 },
   left10: { left: 40 },
   left25: { left: 10 },

@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, Animated, TouchableOpacity, Modal, FlatList, Pressable } from 'react-native';
-import { styles as s } from '../constants/tailwindStyles';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { LabelSelectProps } from '../types';
+import { styles as s, colors } from '../constants/tailwindStyles';
 
 export default function LabelSelect({
   label,
@@ -12,7 +12,9 @@ export default function LabelSelect({
   multiple = false,
   helperText,
   containerStyle,
-}: LabelSelectProps) {
+  required = false,
+  icon,
+}: LabelSelectProps & { required?: boolean; icon?: keyof typeof Ionicons.glyphMap }) {
   const [isFocused, setIsFocused] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const animatedIsFocused = useRef(new Animated.Value((Array.isArray(value) ? value.length : value) ? 1 : 0)).current;
@@ -20,17 +22,17 @@ export default function LabelSelect({
   useEffect(() => {
     Animated.timing(animatedIsFocused, {
       toValue: isFocused || (Array.isArray(value) ? value.length : value) ? 1 : 0,
-      duration: 180,
+      duration: 200,
       useNativeDriver: false,
     }).start();
   }, [isFocused, value]);
 
   const labelStyle = {
     position: 'absolute' as 'absolute',
-    left: 12,
+    left: icon ? 44 : 16,
     top: animatedIsFocused.interpolate({
       inputRange: [0, 1],
-      outputRange: [24, -8],
+      outputRange: [20, -8],
     }),
     fontSize: animatedIsFocused.interpolate({
       inputRange: [0, 1],
@@ -38,97 +40,225 @@ export default function LabelSelect({
     }),
     color: animatedIsFocused.interpolate({
       inputRange: [0, 1],
-      outputRange: ['#888', '#e46a62ff'],
+      outputRange: [colors.gray[400], colors.primary[600]],
     }),
-    backgroundColor: '#fff',
-    paddingHorizontal: 2,
+    backgroundColor: animatedIsFocused.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['transparent', '#FFFFFF'],
+    }),
+    paddingHorizontal: animatedIsFocused.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0, 4],
+    }),
     zIndex: 2,
+    fontWeight: '500' as '500',
+    borderRadius: 4,
   };
 
   const displayValue = Array.isArray(value)
     ? value.length > 0 ? value.join(', ') : ''
     : value;
 
+  const borderColor = isFocused 
+    ? colors.primary[500] 
+    : value 
+    ? colors.medical[500] 
+    : colors.gray[300];
+
   return (
-    <View style={[{ marginTop: 15 }, containerStyle]}>
-      <View style={{ position: 'relative' }}>
-        <Animated.Text style={labelStyle}>{label}</Animated.Text>
+    <View style={[s.mb5, containerStyle]}>
+      <View style={s.relative}>
+        <Animated.Text style={labelStyle}>
+          {label}{required && <Text style={{ color: colors.danger[500] }}> *</Text>}
+        </Animated.Text>
+        
+        {icon && (
+          <View style={[
+            s.absolute,
+            s.left2,
+            { top: 20, zIndex: 1 }
+          ]}>
+            <Ionicons 
+              name={icon} 
+              size={20} 
+              color={isFocused ? colors.primary[500] : colors.gray[400]} 
+            />
+          </View>
+        )}
+        
         <TouchableOpacity
           style={[
-            s.px4,
-            s.py4,
-            s.border,
+            s.h14,
+            s.border2,
             s.roundedXl,
+            s.bgWhite,
             s.justifyCenter,
-            { borderColor: isFocused ? '#e46a62ff' : '#888', backgroundColor: '#fff', minHeight: 48 },
+            s.shadowSm,
+            { 
+              borderColor,
+              paddingHorizontal: icon ? 44 : 16,
+            }
           ]}
           activeOpacity={0.7}
           onPress={() => { setIsFocused(true); setModalVisible(true); }}
-          onBlur={() => setIsFocused(false)}
         >
-          <Text style={[s.textBase, s.pr3,{ color: displayValue ? '#222' : '#888' }]}>
-            {displayValue}
+          <Text style={[
+            s.textBase,
+            { 
+              color: displayValue ? colors.gray[800] : 'transparent',
+              paddingRight: 32
+            }
+          ]}>
+            {displayValue || ''}
           </Text>
-          <MaterialIcons name="arrow-drop-down" size={28} color="#6B7280" style={{ position: 'absolute', right: 8 }} />
+          
+          <Ionicons 
+            name="chevron-down" 
+            size={20} 
+            color={colors.gray[400]} 
+            style={[s.absolute, s.right2]} 
+          />
         </TouchableOpacity>
       </View>
+
       <Modal
         visible={modalVisible}
-        animationType="slide"
+        animationType="fade"
         transparent
         onRequestClose={() => { setModalVisible(false); setIsFocused(false); }}
       >
-        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.2)' }} onPress={() => { setModalVisible(false); setIsFocused(false); }} />
-        <View style={[s.bgWhite, s.p4, s.roundedMd, { margin: 24, position: 'absolute', top: 120, left: 0, right: 0, zIndex: 10 }]}> 
-          <Text style={[s.textLg, s.fontBold, s.mb2]}>Select {label}</Text>
-          <FlatList
-            data={options}
-            keyExtractor={item => item}
-            renderItem={({ item }) => {
-              const checked = Array.isArray(value)
-                ? value.includes(item)
-                : value === item;
-              return (
-                <TouchableOpacity
-                  style={[s.flexRow, s.justifyStart, s.py2]}
-                  onPress={() => {
-                    if (multiple) {
-                      let newValue = Array.isArray(value) ? [...value] : [];
-                      if (checked) {
-                        newValue = newValue.filter((v: string) => v !== item);
+        <Pressable 
+          style={[
+            s.flex1,
+            s.justifyCenter,
+            s.alignCenter,
+            { backgroundColor: 'rgba(0,0,0,0.4)' }
+          ]} 
+          onPress={() => { setModalVisible(false); setIsFocused(false); }}
+        >
+          <View style={[
+            s.bgWhite,
+            s.roundedXl,
+            s.m5,
+            s.shadowLg,
+            { 
+              maxHeight: '70%',
+              width: '90%'
+            }
+          ]}> 
+            <View style={[
+              s.p5,
+              s.borderB,
+              { borderBottomColor: colors.gray[200] }
+            ]}>
+              <Text style={[
+                s.textXl,
+                s.fontSemibold,
+                s.textCenter,
+                { color: colors.gray[800] }
+              ]}>
+                Select {label.replace(' *', '')}
+              </Text>
+            </View>
+            
+            <FlatList
+              data={options}
+              keyExtractor={item => item}
+              style={{ maxHeight: 400 }}
+              renderItem={({ item }) => {
+                const checked = Array.isArray(value)
+                  ? value.includes(item)
+                  : value === item;
+                return (
+                  <TouchableOpacity
+                    style={[
+                      s.flexRow,
+                      s.alignCenter,
+                      s.p4,
+                      s.borderB,
+                      { borderBottomColor: colors.gray[100] }
+                    ]}
+                    onPress={() => {
+                      if (multiple) {
+                        let newValue = Array.isArray(value) ? [...value] : [];
+                        if (checked) {
+                          newValue = newValue.filter((v: string) => v !== item);
+                        } else {
+                          newValue.push(item);
+                        }
+                        onChange(newValue);
                       } else {
-                        newValue.push(item);
+                        onChange(item);
+                        setModalVisible(false);
+                        setIsFocused(false);
                       }
-                      onChange(newValue);
-                    } else {
-                      onChange(item);
-                      setModalVisible(false);
-                      setIsFocused(false);
-                    }
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <MaterialIcons
-                    name={checked ? 'check-box' : 'check-box-outline-blank'}
-                    size={24}
-                    color={checked ? '#e46a62ff' : '#9ca3af'}
-                    style={[s.mr2]}
-                  />
-                  <Text style={[s.textBase, checked ? { color: '#e46a62ff' } : s.textGray700]}>{item.charAt(0).toUpperCase() + item.slice(1)}</Text>
-                </TouchableOpacity>
-              );
-            }}
-          />
-          <TouchableOpacity
-            style={[s.mt4, s.px4, s.py2, { backgroundColor: '#e46a62ff' }, s.roundedFull, s.justifyCenter]}
-            onPress={() => { setModalVisible(false); setIsFocused(false); }}
-          >
-            <Text style={[s.textWhite, s.textBase, s.fontSemibold]}>Done</Text>
-          </TouchableOpacity>
-        </View>
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[
+                      s.w6,
+                      s.h6,
+                      s.roundedFull,
+                      s.border2,
+                      s.alignCenter,
+                      s.justifyCenter,
+                      s.mr3,
+                      { 
+                        borderColor: checked ? colors.primary[500] : colors.gray[300],
+                        backgroundColor: checked ? colors.primary[500] : 'transparent'
+                      }
+                    ]}>
+                      {checked && (
+                        <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                      )}
+                    </View>
+                    <Text style={[
+                      s.textBase,
+                      { 
+                        color: checked ? colors.primary[600] : colors.gray[700],
+                        fontWeight: checked ? '600' : '400',
+                        textTransform: 'capitalize'
+                      }
+                    ]}>
+                      {item}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              }}
+            />
+            
+            <View style={s.p5}>
+              <TouchableOpacity
+                style={[
+                  s.py4,
+                  s.roundedXl,
+                  s.alignCenter,
+                  { backgroundColor: colors.primary[500] }
+                ]}
+                onPress={() => { setModalVisible(false); setIsFocused(false); }}
+              >
+                <Text style={[
+                  s.textBase,
+                  s.fontSemibold,
+                  { color: '#FFFFFF' }
+                ]}>
+                  Done
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Pressable>
       </Modal>
+      
       {!!helperText && (
-        <Text style={[s.textSm, s.mt1, { color: '#888' }]}>{helperText}</Text>
+        <Text style={[
+          s.textXs,
+          s.mt1,
+          s.ml4,
+          { color: colors.gray[500] }
+        ]}>
+          {helperText}
+        </Text>
       )}
     </View>
   );
