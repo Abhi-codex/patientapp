@@ -143,7 +143,6 @@ export default function PatientAuthScreen() {
             />
           </View>
 
-          {/* Login Button */}
           <TouchableOpacity
             style={[styles.wFull, styles.py4, styles.alignCenter, styles.roundedLg, 
                   {backgroundColor: loading || !validatePhone() ? colors.gray[300] : colors.primary[500],
