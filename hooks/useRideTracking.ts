@@ -1,8 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEffect, useState, useRef } from 'react';
-// Notifications removed: no-op until backend/push are integrated
+import { useEffect, useState } from 'react';
 import { Ride, RideStatus } from '../types/rider';
-import { getServerUrl } from '../utils/network';
+import { SERVER_URL } from '../utils/network';
 
 interface TrackingState {
   ride: Ride | null;
@@ -41,7 +40,7 @@ export function useRideTracking(rideId: string): TrackingState {
       }
 
       // Fetch current ride details
-      const response = await fetch(`${getServerUrl()}/ride/rides?id=${rideId}`, {
+  const response = await fetch(`${SERVER_URL}/ride/rides?id=${rideId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Hospital, AmbulanceType } from '../types/patient';
-import { getServerUrl } from '../utils/network';
+import { SERVER_URL } from '../utils/network';
 import { getEmergencyById } from '../utils/emergencyUtils';
 
 export interface RideBookingState {
@@ -23,7 +23,7 @@ export interface RideBookingState {
 export function useRideBooking(): RideBookingState {
   const router = useRouter();
   const [booking, setBooking] = useState(false);
-  const BACKEND_URL = `${getServerUrl()}/ride/create`;
+  const BACKEND_URL = `${SERVER_URL}/ride/create`;
 
   const bookRide = async (
     hospital: Hospital,

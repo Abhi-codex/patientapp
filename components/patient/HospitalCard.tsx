@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import { colors, styles } from "../../constants/tailwindStyles";
 import { Hospital } from "../../types/patient";
-import { getServerUrl } from "../../utils/network";
+import { SERVER_URL } from "../../utils/network";
 
 interface HospitalCardProps {
   hospital: Hospital;
@@ -27,8 +27,7 @@ export default function HospitalCard({
   const getPhotoUrl = () => {
     if (hospital.photos && hospital.photos.length > 0 && hospital.photos[0].photoReference) {
       const photoReference = hospital.photos[0].photoReference;
-      const baseUrl = getServerUrl();
-      // Updated to match new Places API format
+  const baseUrl = SERVER_URL;
       const url = `${baseUrl}/hospitals/photo/${encodeURIComponent(photoReference)}?maxwidth=400&maxheight=400`;
       console.log('Using hospital photo URL:', url);
       return url;
@@ -70,15 +69,6 @@ export default function HospitalCard({
       color: colors.danger[600],
       iconColor: colors.danger[600]
     };
-  };
-
-  // Capability score color
-  const getScoreColor = (score?: number) => {
-    if (!score) return colors.gray[400];
-    if (score >= 70) return colors.medical[500];
-    if (score >= 50) return colors.warning[500];
-    if (score >= 30) return colors.warning[800];
-    return colors.danger[500];
   };
 
   const verificationStatus = getVerificationStatus();

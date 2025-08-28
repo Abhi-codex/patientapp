@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { ActivityIndicator, Text, TouchableOpacity, View, Linking, Modal, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PatientRideMap, TripSummary } from '../../components/patient';
@@ -24,11 +24,19 @@ export default function TrackingScreen() {
     handleRefresh,
     noDriverTimerActive,
     noDriverRemainingMs,
+    noDriverExpired,
     recreateLastRide,
     availableDrivers,
     destinationLocation,
     rideStatus,
   } = useTrackingLogic(rideId as string | undefined);
+
+  // Show dialog automatically if the no-driver timer expired while on this screen
+  useEffect(() => {
+    if (noDriverExpired) {
+      setNoDriverDialogVisible(true);
+    }
+  }, [noDriverExpired]);
 
   const timerText = useMemo(() => {
     const ms = noDriverRemainingMs || 0;

@@ -1,14 +1,5 @@
-export const getServerUrl = () => {
-  // Use environment variable if available, fallback to hardcoded URL
-  const envUrl = process.env.EXPO_PUBLIC_SERVER_URL;
-  const fallbackUrl = 'https://ambulancebackend.onrender.com';
-  
-  const serverUrl = envUrl || fallbackUrl;
-  console.log('[NETWORK] Using server URL:', serverUrl);
-  console.log('[NETWORK] Environment URL available:', !!envUrl);
-  
-  return serverUrl;
-};
+export const SERVER_URL = 'https://ambulancebackend.onrender.com';
+export const getServerUrl = () => SERVER_URL;
 
 export const makeRequest = async (url: string, options: RequestInit) => {
   const controller = new AbortController();

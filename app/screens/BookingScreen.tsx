@@ -9,7 +9,7 @@ import { colors, styles } from '../../constants/tailwindStyles';
 import { useHospitalSelection, useLocationAndHospitals, useRideBooking } from '../../hooks';
 import { AmbulanceType, Hospital } from '../../types/patient';
 import { filterHospitalsByEmergency, getAvailableAmbulanceTypes, getEmergencyById, getSuggestedAmbulanceType } from '../../utils/emergencyUtils';
-import { getServerUrl } from '../../utils/network';
+import { SERVER_URL } from '../../utils/network';
 
 // Helper to render the correct icon component
 const renderIcon = (iconObj: { name: string; library: string }, size = 28, color = '#ef4444') => {
@@ -41,7 +41,7 @@ export default function RideScreen() {
         return;
       }
       try {
-        const response = await fetch(`${getServerUrl()}/auth/me`, {
+  const response = await fetch(`${SERVER_URL}/auth/me`, {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` },
         });
@@ -71,8 +71,6 @@ export default function RideScreen() {
   // Emergency context from previous screen
   const emergencyId = params.emergencyType as string;
   const emergencyName = params.emergencyName as string;
-  const requiredAmbulanceTypes = params.requiredAmbulanceTypes ? 
-    JSON.parse(params.requiredAmbulanceTypes as string) : [];
   const requiredServices = params.requiredServices ? 
     JSON.parse(params.requiredServices as string) : [];
   const priority = params.priority as string;
@@ -107,9 +105,9 @@ export default function RideScreen() {
       console.log('- originalLocation:', !!originalLocation);
       console.log('- loading:', loading);
     }
-  }, [emergencyId, originalLocation, loading]); // Removed fetchHospitalsByEmergency from dependencies
+  }, [emergencyId, originalLocation, loading]);
   
-  // Filter hospitals based on emergency requirements (fallback for frontend filtering)
+  // Filter hospitals based on emergency requirements
   const hospitals = useMemo(() => {
     console.log('Filtering hospitals. Emergency ID:', emergencyId);
     console.log('All hospitals count:', allHospitals.length);

@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { ActivityIndicator, Image, Text, TouchableOpacity, View } from "react-native";
 import { colors, styles } from "../../constants/tailwindStyles";
 import { Hospital } from "../../types/patient";
-import { getServerUrl } from "../../utils/network";
+import { SERVER_URL } from "../../utils/network";
 
 interface SelectedHospitalProps {
   hospital: Hospital;
@@ -24,7 +24,7 @@ export default function SelectedHospital({
   const getPhotoUrl = () => {
     if (hospital.photos && hospital.photos.length > 0 && hospital.photos[0].photoReference) {
       const photoReference = hospital.photos[0].photoReference;
-      const baseUrl = getServerUrl();
+  const baseUrl = SERVER_URL;
       const url = `${baseUrl}/hospitals/photo/${encodeURIComponent(photoReference)}?maxwidth=400&maxheight=400`;
       console.log('Using hospital photo URL:', url);
       return url;

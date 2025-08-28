@@ -6,7 +6,7 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { styles as s, colors } from '../../constants/tailwindStyles';
-import { getServerUrl } from '../../utils/network';
+import { SERVER_URL } from '../../utils/network';
 
 type BloodGroup = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
 type Gender = 'male' | 'female' | 'other';
@@ -122,9 +122,9 @@ export default function PatientProfileSetupScreen() {
         profileCompleted: true,
       };
 
-      const serverUrl = getServerUrl();
+  const serverUrl = SERVER_URL;
       
-      if (!serverUrl || serverUrl === 'undefined') {
+      if (!serverUrl) {
         Alert.alert('Error', 'Server configuration error. Please contact support.');
         return;
       }

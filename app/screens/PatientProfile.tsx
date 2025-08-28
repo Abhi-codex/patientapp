@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons, FontAwesome5, Entypo } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, styles as s } from '../../constants/tailwindStyles';
-import { getServerUrl } from '../../utils/network';
+import { SERVER_URL } from '../../utils/network';
 import { OTPAuth } from '../../utils/otpauth';
 import PatientEditModal, { PatientFormData } from '../../components/PatientEditModal';
 
@@ -62,7 +62,7 @@ export default function PatientProfile() {
         return;
       }
 
-      const response = await fetch(`${getServerUrl()}/patient/profile`, {
+  const response = await fetch(`${SERVER_URL}/patient/profile`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -136,7 +136,7 @@ export default function PatientProfile() {
         profileCompleted: true,
       };
 
-      const response = await fetch(`${getServerUrl()}/patient/profile`, {
+  const response = await fetch(`${SERVER_URL}/patient/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, BackHandler, Linking, Platform } from 'react-native';
 import { useRideTracking } from '.';
 import { RideStatus } from '../types/rider';
-import { getServerUrl } from '../utils/network';
+import { SERVER_URL } from '../utils/network';
 import { getEmergencyById } from '../utils/emergencyUtils';
 
 function decodePolyline(t: string) {
@@ -206,7 +206,7 @@ export function useTrackingLogic(rideId: string | undefined) {
         if (!ride || !ride._id || !ride.rider || !ride.rider._id) return;
         const token = await AsyncStorage.getItem('access_token');
         if (!token) return;
-        const resp = await fetch(`${getServerUrl()}/ride/rides?id=${ride._id}`, { method: 'GET', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
+  const resp = await fetch(`${SERVER_URL}/ride/rides?id=${ride._id}`, { method: 'GET', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
         if (!resp.ok) return;
         const json = await resp.json();
         if (!json || !json.rides || json.rides.length === 0) return;
@@ -274,7 +274,7 @@ export function useTrackingLogic(rideId: string | undefined) {
 
       console.log('Recreate payload:', JSON.stringify(payload));
       if (!payload.pickup.latitude || !payload.pickup.longitude || !payload.drop.latitude || !payload.drop.longitude) { Alert.alert('Recreate failed', 'Ride coordinates are missing. Please try booking again or contact support.'); setRecreateLoading(false); return; }
-      const response = await fetch(`${getServerUrl()}/ride/create`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) });
+  const response = await fetch(`${SERVER_URL}/ride/create`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) });
       const text = await response.text();
       let data: any = null;
       try {
@@ -346,9 +346,10 @@ export function useTrackingLogic(rideId: string | undefined) {
     rideStatus,
     driverLocation,
     handleRefresh,
-    noDriverTimerActive,
-    noDriverRemainingMs,
-    recreateLoading,
+  noDriverTimerActive,
+  noDriverRemainingMs,
+  noDriverExpired,
+  recreateLoading,
     recreateLastRide,
     availableDrivers,
     destinationLocation,

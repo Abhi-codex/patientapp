@@ -5,7 +5,7 @@ import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, styles } from '../../constants/tailwindStyles';
-import { getServerUrl } from '../../utils/network';
+import { SERVER_URL } from '../../utils/network';
 
 interface PatientProfile {
   name?: string;
@@ -35,7 +35,7 @@ export default function PatientDashboard() {
           router.replace('/');
           return;
         }
-        const res = await fetch(`${getServerUrl()}/patient/profile`, {
+  const res = await fetch(`${SERVER_URL}/patient/profile`, {
           method: 'GET',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         });

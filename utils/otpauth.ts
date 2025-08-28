@@ -1,4 +1,4 @@
-import { getServerUrl } from './network';
+import { SERVER_URL } from './network';
 
 const DEBUG = __DEV__ === true;
 
@@ -28,7 +28,7 @@ export class OTPAuth {
     try {
       if (DEBUG) console.log('[BACKEND OTP] Sending OTP to:', phoneNumber, 'role:', role);
 
-      const response = await fetch(`${getServerUrl()}/auth/send-otp`, {
+  const response = await fetch(`${SERVER_URL}/auth/send-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -82,7 +82,7 @@ export class OTPAuth {
     try {
       if (DEBUG) console.log('[BACKEND OTP] Verifying OTP for:', phoneNumber);
 
-      const response = await fetch(`${getServerUrl()}/auth/verify-otp`, {
+  const response = await fetch(`${SERVER_URL}/auth/verify-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -139,7 +139,7 @@ export class OTPAuth {
         throw new Error('No access token found');
       }
 
-      return fetch(`${getServerUrl()}${endpoint}`, {
+  return fetch(`${SERVER_URL}${endpoint}`, {
         ...options,
         headers: {
           ...options.headers,

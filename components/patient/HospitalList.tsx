@@ -32,7 +32,7 @@ export default function HospitalList({
   emergencyContext,
   searchCriteria
 }: HospitalListProps) {
-  const [sortBy, setSortBy] = useState<SortOption>('capability');
+  const [sortBy, setSortBy] = useState<SortOption>('distance');
 
   // at least 2 out of 3 required services must match
   const filteredHospitals = useMemo(() => {
@@ -201,7 +201,7 @@ export default function HospitalList({
               <View
                 key={hospital.id}
                 style={[
-                { marginBottom: 12, width: 370 },
+                { marginBottom: 12, width: 355 },
                 styles.selfCenter
                 ]}
               >
