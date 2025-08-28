@@ -127,11 +127,15 @@ export default function PatientDashboard() {
             try {
               const last = await AsyncStorage.getItem('last_ride');
               if (last) {
-                const parsed = JSON.parse(last);
-                if (parsed && parsed.rideId && parsed.status === 'active') {
-                  // Open tracking for last ride
-                  router.push({ pathname: '/screens/Tracking', params: parsed.params || { rideId: parsed.rideId } });
-                  return;
+                try {
+                  const parsed = JSON.parse(last);
+                  // Only open tracking when explicitly active
+                  if (parsed && parsed.rideId && parsed.status === 'active') {
+                    router.push({ pathname: '/screens/Tracking', params: parsed.params || { rideId: parsed.rideId } });
+                    return;
+                  }
+                } catch (parseErr) {
+                  console.error('Failed to parse last_ride, ignoring:', parseErr);
                 }
               }
             } catch (e) {

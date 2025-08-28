@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState, useEffect } from 'react';
-import { ActivityIndicator, Text, TouchableOpacity, View, Linking, Modal, Pressable } from 'react-native';
+import { ActivityIndicator, Text, TouchableOpacity, View, Linking, Modal, Pressable, Alert, Platform, ToastAndroid } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PatientRideMap, TripSummary } from '../../components/patient';
 import { colors, styles } from '../../constants/tailwindStyles';
@@ -116,7 +117,32 @@ export default function TrackingScreen() {
               <TouchableOpacity onPress={() => { setNoDriverDialogVisible(false); Linking.openURL('tel:108'); }} style={{ marginLeft: 8, paddingVertical: 10, paddingHorizontal: 14, backgroundColor: '#ddd', borderRadius: 8 }}>
                 <Text style={{ color: '#000', fontWeight: '700' }}>Call 108</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => { setNoDriverDialogVisible(false); router.replace('/screens/EmergencyScreen'); }} style={{ marginLeft: 8, paddingVertical: 10, paddingHorizontal: 14, backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#eee' }}>
+              <TouchableOpacity onPress={async () => { 
+                  setNoDriverDialogVisible(false);
+                  try {
+                    const lastRaw = await AsyncStorage.getItem('last_ride');
+                    if (lastRaw) {
+                      try {
+                        const parsed = JSON.parse(lastRaw);
+                        parsed.status = 'dismissed';
+                        await AsyncStorage.setItem('last_ride', JSON.stringify(parsed));
+                      } catch (e) {
+                        // If parsing fails, remove key as a fallback
+                        console.error('Failed to parse last_ride for dismiss, removing instead', e);
+                        await AsyncStorage.removeItem('last_ride');
+                      }
+                    }
+                  } catch (e) { console.error('Failed to update last_ride', e); }
+
+                  // Show a small confirmation
+                  if (Platform.OS === 'android' && ToastAndroid && typeof ToastAndroid.show === 'function') {
+                    ToastAndroid.show('Ride dismissed', ToastAndroid.SHORT);
+                  } else {
+                    Alert.alert('Ride dismissed', 'The ride has been dismissed.');
+                  }
+
+                  router.replace('/screens/EmergencyScreen');
+                }} style={{ marginLeft: 8, paddingVertical: 10, paddingHorizontal: 14, backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#eee' }}>
                 <Text style={{ color: '#000', fontWeight: '700' }}>Back</Text>
               </TouchableOpacity>
             </View>
