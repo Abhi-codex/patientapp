@@ -97,8 +97,8 @@ export default function PatientProfileSetupScreen() {
       // Structure emergency contact as expected by the server (with 'relation' field)
       const emergencyContactData = {
         phone: formData.emergencyContact.trim(),
-        name: null, // You might want to add a field for emergency contact name
-        relation: null // Backend expects 'relation' not 'relationship'
+        name: null, 
+        relation: null 
       };
 
       // Structure medical history as expected by the server
@@ -127,15 +127,6 @@ export default function PatientProfileSetupScreen() {
       if (!serverUrl) {
         Alert.alert('Error', 'Server configuration error. Please contact support.');
         return;
-      }
-
-      // Test server connectivity first
-      try {
-        console.log('[PROFILE FORM] Testing server connectivity...');
-        const testResponse = await fetch(serverUrl, { method: 'HEAD' });
-        console.log('[PROFILE FORM] Server connectivity test status:', testResponse.status);
-      } catch (connectError) {
-        console.error('[PROFILE FORM] Server connectivity test failed:', connectError);
       }
       
       // Using the patient profile endpoint
